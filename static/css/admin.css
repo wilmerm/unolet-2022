@@ -1,0 +1,78 @@
+/*
+ * Sobrescritura de algunas clases y elementos del
+ * administrador Django.
+*/
+
+
+:root {
+    --unolet-white: #ffffff;
+    --unolet-black: #454545;
+    --unolet-gray: #757575;
+    --unolet-red: #ff0000;
+    --light2: rgb(238, 239, 240);
+
+    --success: #358735;
+}
+
+
+#header {
+    background-color: var(--unolet-black);
+    color: var(--unolet-white);
+}
+
+#header a {
+    color: var(--unolet-white) !important;
+}
+
+
+
+.breadcrumbs {
+    background: var(--unolet-gray) !important;
+    color: var(--unolet-white) !important;
+    font-weight: bold !important;
+}
+
+.breadcrumbs a {
+    color: var(--unolet-white) !important;
+    font-weight: normal !important;
+}
+
+
+
+
+#changelist-filter h2 {
+    background-color: var(--unolet-gray);
+}
+
+
+
+
+
+a.addlink555 {
+    background-color: var(--success) !important;
+    color: var(--unolet-white) !important;
+    padding: 10px;
+}
+
+
+
+
+
+table caption {
+    background: var(--unolet-black) !important;
+    color: var(--unolet-white) !important;
+}
+
+table caption a {
+    color: var(--unolet-white) !important;
+}
+
+
+
+
+fieldset h2 {
+    background-color: var(--unolet-gray) !important;
+}
+
+
+

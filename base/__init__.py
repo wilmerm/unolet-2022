@@ -1,0 +1,5 @@
+"""
+Aplicación base del proyecto.
+"""
+
+
