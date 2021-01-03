@@ -1,0 +1,20 @@
+{% extends 'warehouse/base.html' %}
+
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        {% for obj in object_list %}
+        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+            <a class="btn btn-light text-center" href="{{ obj.get_absolute_url }}">
+                {% svg 'house-fill' size='60%' %}
+                <h2>{{ obj }}</h2>
+                <div>{{ obj.address|truncatechars:"70" }}</div>
+                <div>{{ obj.phones }}</div>
+                <div>{{ obj.email }}</div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock content %}

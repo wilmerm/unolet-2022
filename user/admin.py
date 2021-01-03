@@ -12,3 +12,6 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ["username", "first_name", "last_name", "email"]
 
     list_filter = ["is_superuser", "is_staff", "is_active", "site"]
+
+
+

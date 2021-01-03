@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.sites.models import Site
-from django.contrib.auth.models import (AbstractUser, AbstractBaseUser, PermissionsMixin)
+from django.contrib.auth.models import (AbstractUser, AbstractBaseUser, 
+    PermissionsMixin, Group)
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
@@ -9,6 +10,9 @@ from django.contrib.auth.models import Permission
 
 from unoletutils.libs import utils, icons
 
+
+Group.add_to_class("site", models.ForeignKey(Site, on_delete=models.CASCADE, 
+    blank=True, null=True))
 
 
 class User(AbstractUser, utils.ModelBase):
@@ -63,3 +67,9 @@ class User(AbstractUser, utils.ModelBase):
     def get_img(cls):
         """Obtiene la url de un ícono svg que representa un usuario."""
         return icons.get_url("person-fill")
+
+    def get_companies(self):
+        """Obtiene las empresas que este usuario tiene accesso."""
+        return self.company_set.all() | self.admin_users_company_set.all()
+
+

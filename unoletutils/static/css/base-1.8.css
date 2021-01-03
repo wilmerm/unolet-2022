@@ -69,7 +69,7 @@ html {
 
 
 body {
-    background-color: var(--light);
+    background-color: rgb(253, 255, 245);
 }
 
 #main {
@@ -133,13 +133,6 @@ Botones con imágenes.
     background-color: #eee;
 }
 
-.btn-primary {
-    background-color: var(--white);
-    color: var(--dark);
-}
-.btn-primary:hover {
-    background-color: #eee;
-}
 
 /*
 Tablas.
@@ -895,7 +888,7 @@ Colores, Opacidad...
 
 .blur-8px {
     filter: blur(8px);
-    -webkit-filter: blur(8px));
+    -webkit-filter: blur(8px);
 }
 
 .blur-9px {

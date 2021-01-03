@@ -1,0 +1,36 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% load base %}
+
+{% block navbar %}{% endblock %}
+
+
+{% block content %}
+<div class="container d-block p-md-4 d-flex justify-content-center">
+    <div class="shadow p-4 border bg-light rounded w-md-512px">
+        <form action="" id="form1" class="form" method="POST">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col col-12">
+                    {% bootstrap_form_errors form %}
+                </div>
+                <div class="col col-12 col-md-4">
+                    {% svg 'person' size='100%' %}
+                </div>
+                <div class="col col-12 col-md-8">
+                    {% bootstrap_field form.username %}
+                    {% bootstrap_field form.password %}
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col col-12">
+                    <input type="submit" class="btn btn-primary" value="{% trans 'Ingresar' %}">
+                    <a class="btn btn-secondary" href="{% url 'password_reset' %}" title="{% trans 'Click aquí si tienes problemas para ingresar.' %}">{% trans '¿No puedes acceder?' %}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock content %}

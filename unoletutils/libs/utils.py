@@ -5,7 +5,7 @@ Conjunto de utilidades.
 import sys
 from io import BytesIO
 import datetime
-import itertools
+import functools
 from decimal import Decimal
 import warnings
 
@@ -17,18 +17,16 @@ except (ImportError):
 
 from django.utils.translation import gettext_lazy as _
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.urls import reverse_lazy, reverse, NoReverseMatch
 import django.views.generic
 from django.db import models
 from django.contrib import messages
 from django.contrib.auth.decorators import (login_required, 
     permission_required, user_passes_test)
+from django.shortcuts import get_object_or_404, get_list_or_404
 
 from . import (var, html, text, json, report)
-
-
-
 
 
 def valuecallable(obj):
@@ -39,8 +37,6 @@ def valuecallable(obj):
         return obj()
     except (TypeError):
         return obj
-
-
 
 
 def supergetattr(obj, name, default="", get_display_name=True):
@@ -67,7 +63,6 @@ def supergetattr(obj, name, default="", get_display_name=True):
 
     >> supergetattr(obj, 'a')
     a = obj.get_a_display() or obj.get_a_display or obj.a() or obj.a
-
     """
     names = name.split(".")
     if get_display_name:
@@ -82,8 +77,6 @@ def supergetattr(obj, name, default="", get_display_name=True):
             if get_display_name:
                 attr = valuecallable(getattr(attr, name_end, default))
     return attr
-
-
 
 
 def get_barcode(code: str, strtype: str="code128", render: bool=True, 
@@ -108,7 +101,6 @@ def get_barcode(code: str, strtype: str="code128", render: bool=True,
 
     Returns:
         barcode (object): barcode.get_barcode_class(strtype)(str(code)).render()
-
     """
     c = barcode.get_barcode_class(strtype)(str(code), writer=SVGWriter())
     if (render is True):
@@ -116,8 +108,6 @@ def get_barcode(code: str, strtype: str="code128", render: bool=True,
         opt.update(options or {})
         return c.render(opt).decode("utf-8")
     return c
-
-
 
 
 class context_decorator:
@@ -262,6 +252,146 @@ class context_decorator:
         return context
 
 
+def view_decorator(company_field="company", company_in_url="company", 
+    pk_field="pk", pk_in_url="pk"):
+    """
+    Decorador para las vistas genéricas del proyecto Unolet.
+
+    La url de las mayoría de los objetos del proyecto, contiene el id de la 
+    empresa en la que se está trabajando, y de la cual pertenece el objeto que
+    en ese momento se está gestionando.
+
+    @view_decorator("company")
+    class MyDetailView(DetailView):
+        pass
+
+    Parameters:
+        company_field (str): nombre del campo en el modelo que contiene la 
+        referencia a la empresa.
+
+        company_in_url (str): nombre que identifica el pk de la empresa en la URL.
+
+        pk_field (str): nombre del campo en el modelo que contiene el pk del 
+        objeto que se va a obtener.
+
+        pk_in_url (str): nombre que  identifica el pk del objeto en la URL.
+        ----
+
+        El siguiente ejemplo buscará un objeto que coincida con sus campos 
+        'campany' y 'pk':
+
+            (model, {'company', kwargs['company'], 'pk': kwargs['pk']})
+        
+        Este otro ejemplo el objeto en cuestión no tiene un campo 'company' pero 
+        tiene un related field ForeingKey de cual dicho objeto si lo tiene 
+        (suponiendo que el related field tiene el nombre de 'doctype'):
+
+            (model, {'doctype__company': kwargs['company'], 'pk': kwargs['pk']})
+
+        Este otro ejemplo el campo que contiene el pk en la URL se especificó 
+        con un nombre diferente a 'pk', por ejemplo 'warehouse':
+
+            (model, {'company': kwargs['company'], 'pk': kwargs['warehouse']})
+
+    """
+    from company.models import Company
+
+    def get_company(view_instance):
+        try:
+            company = view_instance.request.company
+        except (AttributeError):
+            try:
+                company = view_instance.get_context_data()["company"]
+            except (AttributeError, KeyError):
+                company = get_object_or_404(Company, pk=kwargs[company_in_url])
+        return company
+
+    # def get_vars(view_instance):
+    #     # El pk de la empresa estará presente en la url como 'company'. 
+    #     # Todo objeto a obtener tendrá que demostrase que dicho objeto 
+    #     # pertenece a dicha empresa.
+    #     model = view_instance.model
+    #     kwargs = view_instance.kwargs
+    #     company_pk = kwargs[company_in_url]
+
+    #     try:
+    #         pk = kwargs[pk_in_url]
+    #     except (KeyError):
+    #         # No hay un objeto, es posible que sea un 
+    #         # CreateView o TemplateView, etc.
+    #         obj, pk = None, None
+    #         company = get_object_or_404(Company, pk=company_pk)
+    #     else:
+    #         filter_kwargs = {company_field: company_pk, pk_field: pk}
+    #         obj = get_object_or_404(model, **filter_kwargs)
+    #         company = functools.reduce(getattr, [obj] + company_field.split("__"))
+
+    #     return {"model": model, "kwargs": kwargs, "company_pk": company_pk, 
+    #         "pk": pk, "object": obj, "company": company}
+
+    def new_get_object(view_instance, queryset=None):
+
+        company = get_company(view_instance)
+        company_pk = view_instance.kwargs.get(company_in_url)
+        pk = view_instance.kwargs.get(pk_in_url)
+        
+        if company_pk and pk:
+            filters = {company_field: company_pk, pk_field: pk}
+            obj = get_object_or_404(view_instance.model, **filters)
+        else:
+            obj = None
+
+        # La objeto debe pertenecer a la misma empresa obtenida por url.
+        if obj:
+            obj_company = functools.reduce(getattr, [obj] + company_field.split("__"))
+            if obj_company != company:
+                raise Http404(f"La empresa {company} no es la misma empresa "
+                    f"del objeto {obj_company}")
+        
+        # La empresa debe estar activa.
+        if not company.is_active:
+            raise Http404(f"La empresa {company} no está activa.")
+
+        # El usuario debe tener acceso a esta empresa.
+        if not company.user_has_access(view_instance.request.user):
+            raise Http404(f"El usuario {request.user} no pertenece a {company}")
+
+        return obj
+
+    def new_get_form_kwargs(view_instance):
+        """Incluimos la instancia 'company' a los argumentos del formulario."""
+        kwargs = super(view_instance.__class__, view_instance).get_form_kwargs()
+        kwargs["company"] = get_company(view_instance)
+        return kwargs
+
+    def new_form_valid(view_instance, form):
+        user = view_instance.request.user
+        company = get_company(view_instance)
+
+        if not form.instance.pk:
+            try:
+                form.instance.create_user = user
+            except (AttributeError):
+                pass
+            try:
+                form.instance.company = company
+            except (AttributeError):
+                pass
+        return super(view_instance.__class__, view_instance).form_valid(form)
+
+    def _generic_view_class_wrapper(view_class):
+        if hasattr(view_class, "get_object"):
+            view_class.get_object = new_get_object
+
+        if hasattr(view_class, "get_form_kwargs"):
+            view_class.get_form_kwargs = new_get_form_kwargs
+
+        if hasattr(view_class, "form_valid"):
+            view_class.form_valid = new_form_valid
+
+        return view_class
+
+    return _generic_view_class_wrapper
 
 
 class ModelBase(text.Text):
@@ -296,10 +426,10 @@ class ModelBase(text.Text):
         print(f"{self} | Guardando sin history_record")
         self.skip_history_when_saving = True
         try:
-            ret = self.save(*args, **kwargs)
+            out = self.save(*args, **kwargs)
         finally:
             del self.skip_history_when_saving
-        return ret
+        return out
 
     def clean(self, *args, **kwargs):
         """
@@ -648,81 +778,3 @@ class ModelBase(text.Text):
         except (AttributeError):
             return None
 
-
-
-
-
-
-
-
-class listview_decorator(text.Text):
-
-    def __init__(self, queryset=None, reporte=None, limit=100, model=None, otros_filtros=[]):
-        if queryset != None:
-            self.queryset = queryset
-            self.model = queryset.model
-        elif model:
-            self.queryset = model.objects.all()
-            self.model = model
-        self.reporte = reporte
-        self.limit = limit or 100
-        self.otros_filtros = otros_filtros or [] # Nombres de los parametros pasados por request.GET en los que también se pretende filtrar.
-
-
-    def __call__(self, view, *args, **kwargs):
-
-        self.submenu_nueva_version = context_decorator(*args, **kwargs)
-
-        def func(request, *args, **kwargs):
-            q = request.GET.get("q") or None
-            field = request.GET.get("field")
-            page = request.GET.get("page") or 1
-            limit = request.GET.get("limit") or self.limit
-            qs = self.queryset
-
-            if (q) and (field) and (field != "tags"):
-                qs = qs.filter(**{"%s__icontains" % field: self.GetTag(q, False)})
-            elif (q):
-                qs = qs.filter(tags__icontains=self.GetTag(q, False))
-
-            if self.otros_filtros:
-                dic = {}
-                for _name in self.otros_filtros:
-                    _value = request.GET.get(_name)
-                    if _value in (None, ""):
-                        continue
-                    dic[_name] = _value
-                qs = qs.filter(**dic)
-
-            paginator = Paginator(qs, limit)
-            page_obj = paginator.get_page(page)
-
-            if self.reporte:
-                reporte = self.reporte(queryset=page_obj.object_list)
-                kwargs["reporte"] = reporte
-
-            kwargs["object_list"] = page_obj.object_list
-            kwargs["queryset"] = page_obj.object_list
-            kwargs["model"] = self.model
-            kwargs["paginator"] = paginator
-            kwargs["page_obj"] = page_obj
-            kwargs["page_num"] = page
-            kwargs["submenu_nueva_version"] = self.submenu_nueva_version
-            return view(request, *args, **kwargs)
-        return func
-
-
-
-
-def any_permission_required(*args):
-    """
-    A decorator which checks user has any of the given permissions.
-    permission required can not be used in its place as that takes only a
-    single permission.
-    """
-    def test_func(user):
-        for perm in args:
-            if user.has_perm(perm):
-                return True
-        return False
-    return user_passes_test(test_func)

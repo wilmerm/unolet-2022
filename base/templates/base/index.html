@@ -1,1 +1,44 @@
 {% extends 'base/base.html' %}
+{% load i18n %}
+
+{% comment %}
+Esta es la plantilla principal para cada site, de modo que en esta enumeramos
+las ditintas empresas que pertenecen al site actual.
+{% endcomment %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="display-2 text-center mb-2">{{ request.site.name }}</h1>
+
+    <div class="row">
+        {% for obj in user.get_companies %}
+            {% if obj.is_active %}
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3 card text-center shadow-sm" style="width: 18rem;">
+                {% if obj.logo %}<img src="{{ obj.logo.url }}" class="card-img-top" alt="{{ obj }}">{% else %}<div class="h2 text-center font-weight-bold p-2 py-4 bg-primary text-light">{{ obj }}</div>{% endif %}
+                <div class="card-body">
+                <h5 class="card-title">{{ obj }}</h5>
+                <p class="card-text">{{ obj.description }}</p>
+                <a href="{{ obj.get_absolute_url }}" class="btn btn-primary">{% trans 'Ir a la empresa' %}</a>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+        {% for obj in user.company_set.all %}
+            {% if obj.is_active %}
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3 card text-center shadow-sm" style="width: 18rem;">
+                {% if obj.logo %}<img src="{{ obj.logo.url }}" class="card-img-top" alt="{{ obj }}">{% else %}<div class="h2 text-center font-weight-bold p-2 py-4 bg-dark text-light">{{ obj }}</div>{% endif %}
+                <div class="card-body">
+                <h5 class="card-title">{{ obj }}</h5>
+                <p class="card-text">{{ obj.description }}</p>
+                <a href="{{ obj.get_absolute_url }}" class="btn btn-dark">{% trans 'Ir a la empresa' %}</a>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+
+{% endblock content %}

@@ -19,7 +19,14 @@ from django.urls import path, include
 
 
 urlpatterns = [
-    path(f'unoletadmin/{datetime.date.today().day}/', admin.site.urls),
+    path('admin/', admin.site.urls),
+    path('', include('user.urls')),
     path('', include('base.urls')),
-
+    path('company/', include('company.urls')),
 ]
+
+
+handler400 = 'base.views.handler400'
+handler403 = 'base.views.handler403'
+handler404 = 'base.views.handler404'
+handler500 = 'base.views.handler500'

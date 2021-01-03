@@ -2,10 +2,10 @@ from django.db import models
 from django.contrib.sites.models import Site
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
+from django.urls import reverse_lazy
 
 from unoletutils.libs import utils
 from company.models import Company
-
 
 
 class WarehouseOnSiteManager(models.Manager):
@@ -57,3 +57,6 @@ class Warehouse(models.Model, utils.ModelBase):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self):
+        return reverse_lazy("warehouse-warehouse-detail", kwargs={"company": self.company.pk, "warehouse": self.pk})

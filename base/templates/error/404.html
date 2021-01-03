@@ -1,0 +1,11 @@
+{% extends 'error/base.html' %}
+{% load i18n %}
+
+
+{% block content %}
+<div class="container">
+    <div class="alert alert-warning border">
+        <strong>{% svg 'search' fill='var(--warning)' %} {{ var.MSG_ERROR_404 }}</strong>
+    </div>
+</div>
+{% endblock content %}

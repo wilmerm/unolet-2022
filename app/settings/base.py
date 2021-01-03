@@ -24,7 +24,7 @@ SECRET_KEY = 'upw&$-qn5m=99-eseox9f)2y6xjzj7xj9t@nrtn+dnrri^u=td'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    'django.contrib.humanize',
+
+    # Aplicaciones externas.
+    
+    'simple_history',
+    'bootstrap4',
 
     # Aplicaciones locales.
 
@@ -46,6 +52,11 @@ INSTALLED_APPS = [
     'module',
     'company',
     'warehouse',
+    'person',
+    'finance',
+    'document',
+    'inventory',
+    'audit',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +67,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.contrib.sites.middleware.CurrentSiteMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware', # simple_history
+    'base.middleware.CheckUserInCompanyMiddleware',
+    'base.middleware.CompanyMiddleware',
 ]
 
 ROOT_URLCONF = 'app.urls'
@@ -72,6 +87,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'base.context_processors.base',
+            ],
+            'builtins': [
+                'base.templatetags.base',
             ],
         },
     },

@@ -1,9 +1,12 @@
+{% load i18n %}
+{% load humanize %}
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ title }}{% endblock %}</title>
+    <title>{% block title %}{{ request.site.name }} {% if title %}| {{ title }}{% endif %}{% endblock %}</title>
 
     {% if setting.DEBUG %}
     <script src="/static/external/jquery/jquery-3.5.1.js"></script>
@@ -14,6 +17,7 @@
     <script src="/static/external/bootstrap/js/bootstrap.min.js"></script>
     <link rel="stylesheet" href="/static/external/bootstrap/css/bootstrap.min.css">
     {% endif %}
+
     <script src="/static/js/table-resize.js"></script>
     <script src="/static/js/utils-1.1.js"></script>
     <link rel="stylesheet" href="/static/css/base-1.8.css">
@@ -26,9 +30,10 @@
 <body>
     
     <!-- {# Barra de navegación #} -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    {% block navbar %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div class="container-fluid">
-          <a class="navbar-brand" href="#"></a>
+          <a class="navbar-brand" href="#">{% if company.logo %}<img src="{{ company.logo.url }}" alt="{{ company }}">{% elif company %}{{ company }}{% else %}{{ request.site.name }}{% endif %}</a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
@@ -56,12 +61,24 @@
               </li>
             </ul>
             <form class="d-flex ml-auto">
-              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-              <button class="btn btn-outline-success" type="submit">Search</button>
+              <input class="form-control me-2" type="search" placeholder="{% trans 'Buscar' %}" aria-label="Search">
             </form>
           </div>
         </div>
     </nav>
+    {% endblock navbar %}
+
+
+    <main>
+      <div class="alert alert-warning">
+        <h2>Desarrollo</h2>
+        <div>request.company: {{ request.company }}</div>
+        <div>company: {{ company }}</div>
+        <div>object.company: {{ object.company }}</div>
+      </div>
+      {% block content %}
+      {% endblock content %}
+    </main>
 
 </body>
 </html>
