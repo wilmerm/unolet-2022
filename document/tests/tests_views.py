@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from user.models import User
 from document.views import (DocumentUpdateView)
+from user.tests.tests_models import get_or_create_user
 from document.tests.tests_models import get_or_create_document
 
 
@@ -82,7 +83,6 @@ class DocumentUpdateViewTest(TestCase):
 
     def test_post_save_is_ok(self):
         document = get_or_create_document()
-
         self.client.login(username="test", password="test")
         response = self.client.post(document.get_absolute_url())
 

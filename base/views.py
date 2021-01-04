@@ -4,7 +4,6 @@ from django.contrib.auth.mixins import (LoginRequiredMixin,
     PermissionRequiredMixin)
 
 
-
 def handler400(request, exception=None):
     response = render(request, "error/400.html", {})
     response.status_code = 400

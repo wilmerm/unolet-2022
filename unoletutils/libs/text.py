@@ -1,13 +1,16 @@
 """
 Módulo con herramientas útiles para el manejo de cadenas de textos.
 """
+
 import re
 import unicodedata
 import itertools
 
-from . import number, numero_letras, exceptions
+from . import number, number_letter
 
 
+class TextError(Exception):
+    pass
 
 
 class Text(number.Number):
@@ -16,17 +19,14 @@ class Text(number.Number):
     """
 
     @classmethod
-    def NumberToLetter(self, number, in_moneda=True, moneda="dop"):
-        """
-        Convierte un número en un texto leíble.
-        __author__: efrenfuentes.
-        """
+    def number_to_letter(self, number, in_moneda=True, moneda="dop"):
+        """Convierte un número en un texto leíble."""
         if in_moneda is True:
-            return numero_letras.numero_a_moneda(number, moneda=moneda)
-        return numero_letras.numero_a_letras(number)
+            return number_letter.numero_a_moneda(number, moneda=moneda)
+        return number_letter.numero_a_letras(number)
 
     @classmethod
-    def Normalize(self, string, lower=True):
+    def normalize(self, string, lower=True):
         """
         Remplaza el texto por uno similiar sin tíldes ni caracteres especiales
         como eñes, ni espacios extras, ni comillas y en minuscula si es indicado.
@@ -53,7 +53,7 @@ class Text(number.Number):
         return out
 
     @classmethod
-    def GetTag(self, text, combinate=False, allow=None):
+    def get_tag(self, text, combinate=False, allow=None):
         """
         Obtiene un texto pre-formateado sin tíldes, ni comillas, ni slash...,
         ideal para campo de búsqueda.
@@ -71,11 +71,11 @@ class Text(number.Number):
             que los caracteres que en 'allow' no se especifiquen, serán excluidos
             del resultado.
         """
-        t = self.Normalize(text, lower=False)
+        t = self.normalize(text, lower=False)
 
         if allow:
             if not isinstance(allow, str):
-                raise exceptions.TextError(f"El parámetro 'allow' debe ser de \
+                raise TextError(f"El parámetro 'allow' debe ser de \
                      tipo str, pero se indicó {type(allow)}.")
 
             # Solo se permitirán estos caracteres.
@@ -92,17 +92,17 @@ class Text(number.Number):
         t = t.lower()
         # Combinaciones.
         if (combinate == True):
-            return self.Permutations(t).strip()
+            return self.permutations(t).strip()
         return t
 
     @classmethod
     def __gettagsclean(self, text):
         if isinstance(text, (tuple, list)):
-            text = self.GetTags(text, combinate=False)
-        return self.Normalize(text, lower=True)
+            text = self.get_tags(text, combinate=False)
+        return self.normalize(text, lower=True)
 
     @classmethod
-    def GetTags(self, *args, **kwargs):
+    def get_tags(self, *args, **kwargs):
         """
         Obtiene una cadena de texto a partir de los valores pasados (*args).
 
@@ -118,8 +118,8 @@ class Text(number.Number):
             comb (bool): igual a combinate.
 
             allow (str): una cadena de caracteres que le indicarán a este método
-            que los caracteres que en 'allow' no se especifiquen, serán excluidos
-            del resultado.
+            que los caracteres que en 'allow' no se especifiquen, serán 
+            excluidos del resultado.
         """
         combinate = kwargs.get("combinate") or kwargs.get("comb", False)
         allow = kwargs.get("allow")
@@ -128,17 +128,17 @@ class Text(number.Number):
             args = args[0]
 
         if isinstance(args, (list, tuple)):
-            args = " ".join([self.Normalize(x) for x in args])
+            args = " ".join([self.normalize(x) for x in args])
         else:
-            args = self.Normalize(args)
+            args = self.normalize(args)
 
         if (combinate):
-            args = self.Permutations(args)
+            args = self.permutations(args)
 
         if allow:
             if not isinstance(allow, str):
-                raise exceptions.TextError(
-                f"El parámetro 'allow' debe ser de tipo str, pero se indicó {type(allow)}.")
+                raise TextError(f"El parámetro 'allow' debe ser de tipo str, "
+                    f"pero se indicó {type(allow)}.")
 
             # Solo se permitirán estos caracteres.
             # El resto será excluido del resultado.
@@ -154,7 +154,8 @@ class Text(number.Number):
         return args.strip()
 
     @classmethod
-    def FormatCodename(self, string, remplace="", lower=True, permitir=""):
+    def format_codename(self, string: str, remplace: str="", lower: bool=True, 
+        allowed: str=""):
         """
         Formatea el texto dejando solo los caracteres en el rango de a-Z y 0-9.
 
@@ -169,7 +170,7 @@ class Text(number.Number):
 
             lower (bool): si es True, la salida será en minúscula
 
-            permitir (bool): caracteres adicional que se desean permitir
+            allowed (bool): caracteres adicional que se desean permitir
 
         Returns:
             str:
@@ -177,7 +178,8 @@ class Text(number.Number):
         if not remplace:
             remplace = ""
 
-        permited = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" + permitir
+        permited = ("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "0123456789" + allowed)
         out = ""
 
         for char in string:
@@ -191,9 +193,10 @@ class Text(number.Number):
         return out
 
     @classmethod
-    def Permutations(self, iterable, r=2, split=" "):
+    def permutations(self, iterable: iter, r: int=2, split: str=" ") -> str:
         """
-        Devuelve permutaciones de longitud r sucesivas de elementos en el iterable.
+        Devuelve permutaciones de longitud r sucesivas de elementos en el 
+        iterable.
 
         Si r no se especifica o lo está None, entonces r toma por defecto la
         longitud del iterable y se generan todas las posibles permutaciones de
@@ -209,7 +212,7 @@ class Text(number.Number):
 
         https://docs.python.org/3/library/itertools.html#itertools.permutations
 
-        Si en 'iterable' se especifica un string en vez de un iterable, se tomará
+        Si en 'iterable' se especifica un string y no un iterable, se tomará
         el valor del parámetro 'split' para dividir los elementos del string.
 
         Returns:
@@ -219,8 +222,8 @@ class Text(number.Number):
             iterable = iterable.split(split)
 
         # Cuando r es mayor a la longitud del iterable, la función
-        # itertools.permutations(iterable, r), retorna una lista vacia. Evitamos
-        # esto ajustando el valor de r a la longitud del iterable.
+        # itertools.permutations(iterable, r), retorna una lista vacia. 
+        # Evitamos esto ajustando el valor de r a la longitud del iterable.
         if (len(iterable) < r):
             r = len(iterable)
 
@@ -228,22 +231,7 @@ class Text(number.Number):
         return split.join([split.join(x) for x in  permutations])
 
     @classmethod
-    def Combinate(self, arg, split=" ", r=2):
-        """
-        ***WARNING: DEPRECATION FOR self.Permutaions()***
-        Obtiene todas las combinaciones
-        posibles de la cadeda o el array pasado como parametro. Si es una cadena,
-        se tomará en cuenta el argumento split que de forma predeterminada es un espacio en blanco,
-        que indica donde se dividirá la cadena.
-
-        ejemplo con el cadena: 'wilmer morel martinez' -->
-        'wilmer morel wilmer martinez morel wilmer morel martinez martinez wilmer martinez morel'
-        """
-        raise DeprecationWarning(self.Combinate)
-        return self.Permutations(iterable=arg, r=r, split=split)
-
-    @classmethod
-    def TruncateChars(self, text, length, end="..."):
+    def truncatechars(self, text: str, length: int, end: str="...") -> str:
         """
         Corta el texto según la longitud indicada.
 
@@ -270,11 +258,11 @@ class Text(number.Number):
 
         return f"{text[:length - len(end)]}{end}"
 
-
     @classmethod
-    def TruncateCharsCenter(self, text, length):
+    def truncatechars_center(self, text: str, length: int) -> str:
         """
-        Corta el texto según la longitud indicada, quitando solo el texto central.
+        Corta el texto según la longitud indicada, quitando solo el texto 
+        central.
 
         Ejemplo:
             TruncateCharsCenter('La chispa adecuada - Heroes Del Silencio', 30)
@@ -320,10 +308,8 @@ class Text(number.Number):
         return f"{t1}/{t2}"
 
     @classmethod
-    def IsPossibleName(self, text):
-        """
-        Comprueba si el texto indicado puede ser un nombre.
-        """
+    def is_possible_name(self, text: str) -> bool:
+        """Comprueba si el texto indicado puede ser un nombre."""
         numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         for n in numbers:
             if str(n) in text:
@@ -331,23 +317,21 @@ class Text(number.Number):
         return True
 
     @classmethod
-    def IsPossibleFullName(self, text):
-        """
-        Comprueba si el texto indicado puede ser un nombre completo.
-        """
+    def is_possible_full_name(self, text: str) -> bool:
+        """Comprueba si el texto indicado puede ser un nombre completo."""
         if len(text.split(" ")) < 2:
             return False
-        return self.IsPossibleName(text)
+        return self.is_possible_name(text)
 
     @classmethod
-    def SetMoneda(self, numero, simbolo="$", ndec=2):
+    def set_coin(self, numero, simbolo: str="$", ndec: int=2) -> str:
         """
         Convierte el número indicado en una cadena de texto con formato moneda.
         """
         return f"{simbolo}{round(numero, 2):,}"
 
     @classmethod
-    def Strip(self, text):
+    def strip(self, text: str) -> str:
         """
         Elimina los espacios extras del texto indicado.
 
@@ -357,7 +341,8 @@ class Text(number.Number):
         return " ".join(text.split()).strip()
 
     @classmethod
-    def ValidateIdentification(self, text, div="-", length=11, allow="0123456789"):
+    def validate_identification(self, text, div="-", length=11, 
+        allowed="0123456789"):
         """
         Valida que el texto introduccido esté acorde al formato del ID indicado.
 
@@ -377,52 +362,52 @@ class Text(number.Number):
 
         if length != None:
             if len(text) != length:
-                raise exceptions.TextError(f"La identificación debe contener "
+                raise TextError(f"La identificación debe contener "
                 f"exactamente {length} caracteres, la indicada tiene "
                 f"{len(text)} '{text}'.")
 
         # Caracteres permitidos.
-        if allow != None:
+        if allowed != None:
             for c in text:
-                if not c in allow:
-                    raise exceptions.TextError(f"El caracter '{c}' no es válido. "
-                    f"Los carácteres permitos son: '{allow}'.")
+                if not c in allowed:
+                    raise TextError(f"El caracter '{c}' no es válido. "
+                    f"Los carácteres permitos son: '{allowed}'.")
 
         return f"{text[:3]}{div}{text[3:-1]}{div}{text[-1]}"
 
     @classmethod
-    def ValidateRNC(self, text, div="-"):
+    def validate_RNC(self, text, div="-"):
         """
         Valida que el texto introduccido esté acorde al formato del RNC indicado.
 
         Returns:
-            str: self.ValidateIdentification(text=text, div=div, length=9)
+            str: self.validate_identification(text=text, div=div, length=9)
         """
-        return self.ValidateIdentification(text=text, div=div, length=9)
+        return self.validate_identification(text=text, div=div, length=9)
 
     @classmethod
-    def ValidateName(self, text):
+    def clean_person_name(self, text):
         """
-        Valida que el texto introduccido pueda ser utilizado como un nombre
+        Valida y limpia el texto introduccido para ser utilizado como un nombre
         válido para una persona.
         """
-        out = self.Strip(text).title()
-        if not self.IsPossibleName(out):
-            raise exceptions.TextError("El texto indicado no parece ser el "
-                "nombre válido de una persona.")
+        out = self.strip(text).title()
+        if not self.is_possible_name(out):
+            raise TextError("El texto indicado no parece ser el nombre válido "
+                "de una persona.")
         return out
 
     @classmethod
-    def ValidatePhone(self, text):
+    def clean_phone(self, text: str) -> str:
         """
-        Valida que el texto tenga un formato de número telefónico correcto.
+        Valida y limpia el texto tenga un formato de número telefónico correcto.
 
         Y retorna una nueva cadena con el número correctamente dividido.
 
         Returns:
             str:
-                self.ValidatePhone('8299259531') -> '(829) 925-9531'
-                self.ValidatePhone('18299259531') -> '1 (829) 925-9531'
+                self.clean_phone('8299259531') -> '(829) 925-9531'
+                self.clean_phone('18299259531') -> '1 (829) 925-9531'
 
         """
         if not text:
@@ -433,7 +418,7 @@ class Text(number.Number):
         text = text.replace("_", "").replace(",", "").replace(";", "")
 
         if not text.isdigit():
-            raise exceptions.TextError(f"{text} tiene caracteres no numéricos.")
+            raise TextError(f"{text} tiene caracteres no numéricos.")
 
         if len(text) <= 4:
             # 0000
@@ -443,11 +428,11 @@ class Text(number.Number):
             return f"{text[:-4]}-{text[-4:]}"
         elif len(text) <= 10:
             # (000) 000-0000
-            return f"({text[:-7]}) {self.ValidatePhone(text[-7:])}"
+            return f"({text[:-7]}) {self.clean_phone(text[-7:])}"
         elif len(text) <= 13:
             # 0 (000) 000-0000
-            return f"{text[:-10]} {self.ValidatePhone(text[-10:])}"
+            return f"{text[:-10]} {self.clean_phone(text[-10:])}"
         else:
             # Varios números separados por coma (,).
-            return (f"{self.ValidatePhone(text[:-10])}, "
-                f"{self.ValidatePhone(text[-10:])}")
+            return (f"{self.clean_phone(text[:-10])}, "
+                f"{self.clean_phone(text[-10:])}")

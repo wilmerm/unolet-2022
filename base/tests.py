@@ -5,13 +5,23 @@ from django.views.generic import (TemplateView)
 from base.middleware import (CheckUserInCompanyMiddleware, CompanyMiddleware)
 
 
-class CheckUserInCompanyMiddlewareTestCase(TestCase):
+class BaseTestCase(TestCase):
+    """
+    Clase base de la cual herederán las demás clases de prueba.
+    """
+
+    def setUp(self):
+        from company.models import CompanyPermission
+        CompanyPermission.populate()
+
+
+class CheckUserInCompanyMiddlewareTestCase(BaseTestCase):
 
     def setUp(self):
         pass
 
 
-class CompanyMiddlewareTestCase(TestCase):
+class CompanyMiddlewareTestCase(BaseTestCase):
     
     def setUp(self):
         pass

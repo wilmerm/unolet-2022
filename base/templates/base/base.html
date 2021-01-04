@@ -70,12 +70,40 @@
 
 
     <main>
-      <div class="alert alert-warning">
+      {% if settings.DEBUG == True %}
+      <div class="border border-warning p-4">
         <h2>Desarrollo</h2>
-        <div>request.company: {{ request.company }}</div>
-        <div>company: {{ company }}</div>
-        <div>object.company: {{ object.company }}</div>
+        <small>Esto se muestra porque DEBUG = True</small>
+        <hr>
+        <div><b>user: </b>{{ user }} {% if user.is_superuser %}<span class="text-danger">(superuser)</span>{% endif %}</div>
+        <div><b>company: </b>{{ company }}</div>
+        <div><b>request.company: </b>{{ request.company }}</div>
+        <div><b>object.company: </b>{{ object.company }}</div>
+        <div><b>view: </b>{{ view }}</div>
+        <div><b>view.company_permission_required: </b>{{ view.company_permission_required }}</div>
+        <div class="row">
+          <div class="col col-12 col-md-6 border border-warning">
+            <b>user_company_permissions: </b>
+            <ul>
+              {% for obj in user_company_permissions %}
+              <li class="{% if obj.codename == view.company_permission_required or obj.codename in view.company_permission_required %}text-success{% endif %}">
+                {{ obj.codename }} | {{ obj.name }}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="col col-12 col-md-6 border border-warning">
+            <b>user_company_groups: </b>
+            <ul>
+              {% for obj in user_company_groups %}
+              <li>{{ obj.codename }} | {{ obj.name }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
       </div>
+      {% endif %}
       {% block content %}
       {% endblock content %}
     </main>

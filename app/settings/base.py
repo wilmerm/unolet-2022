@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
     # Aplicaciones externas.
     
+    'guardian',
     'simple_history',
     'bootstrap4',
 
@@ -126,6 +127,13 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend', # this is default
+    'guardian.backends.ObjectPermissionBackend', # django-guardian
+)
+
 
 
 # Internationalization

@@ -1,15 +1,15 @@
 from django.shortcuts import render
 from django.views.generic import (ListView, DetailView)
-from django.contrib.auth.mixins import (LoginRequiredMixin, 
-    PermissionRequiredMixin)
 from django.shortcuts import get_object_or_404
+
+#from guardian.mixins import PermissionRequiredMixin, LoginRequiredMixin
 
 from unoletutils.libs.utils import view_decorator
 from .models import Warehouse
 
 
 @view_decorator()
-class WarehouseListView(LoginRequiredMixin, ListView):
+class WarehouseListView(ListView):
     """Listado de almacenes de la empresa actual."""
     model = Warehouse
 
@@ -20,10 +20,11 @@ class WarehouseListView(LoginRequiredMixin, ListView):
     
 
 @view_decorator(pk_in_url="warehouse")
-class WarehouseDetailView(LoginRequiredMixin, DetailView):
+class WarehouseDetailView(DetailView):
     """Detalle de un almacén."""
     model = Warehouse
-
+    company_permission_required = "warehouse.view_warehouse"
+    
     def get_object(self, queryset=None):
         return get_object_or_404(self.model, company=self.kwargs.get("company"), 
             pk=self.kwargs.get("warehouse"))

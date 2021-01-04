@@ -2,6 +2,7 @@
 Conjunto de utilidades.
 """
 
+import warnings
 import sys
 from io import BytesIO
 import datetime
@@ -12,27 +13,30 @@ import warnings
 try:
     import barcode
     from barcode.writer import SVGWriter, ImageWriter
-except (ImportError):
-    pass
+except (ImportError) as e:
+    warnings.warn(e)
 
-from django.utils.translation import gettext_lazy as _
-from django.core.paginator import Paginator
-from django.http import JsonResponse, Http404
-from django.urls import reverse_lazy, reverse, NoReverseMatch
-import django.views.generic
-from django.db import models
-from django.contrib import messages
-from django.contrib.auth.decorators import (login_required, 
-    permission_required, user_passes_test)
-from django.shortcuts import get_object_or_404, get_list_or_404
+try:
+    from django.utils.translation import gettext_lazy as _
+    from django.core.paginator import Paginator
+    from django.core.exceptions import PermissionDenied
+    from django.http import JsonResponse, Http404
+    from django.urls import reverse_lazy, reverse, NoReverseMatch
+    import django.views.generic
+    from django.db import models
+    from django.contrib import messages
+    from django.contrib.auth.decorators import (login_required, 
+        permission_required, user_passes_test)
+    from django.shortcuts import get_object_or_404, get_list_or_404
+except (ImportError) as e:
+    warnings.warg(e)
 
-from . import (var, html, text, json, report)
+#from . import (var, html, text, json, report)
+from . import text
 
 
 def valuecallable(obj):
-    """
-    Intenta invocar el objeto --> obj() y retorna su valor.
-    """
+    """Intentará invocar el objeto --> obj() y retorna su valor."""
     try:
         return obj()
     except (TypeError):
@@ -110,148 +114,6 @@ def get_barcode(code: str, strtype: str="code128", render: bool=True,
     return c
 
 
-class context_decorator:
-    """
-    Docorador para el método get_context_data en las vistas genéricas de Django.
-
-    """
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __call__(self, func):
-        def method(*args, **kwargs):
-            context = func(*args, **kwargs)
-            return self.get_context_data(**context)
-        return method
-
-    @classmethod
-    def get_context_data(self, **context):
-
-        view = context.get("view", None)
-        view_kwargs = getattr(view, "kwargs", dict())
-        model = getattr(view, "model", context.get("model"))
-        model_meta = getattr(model, "_meta", None)
-        request = getattr(view, "request", context.get("request"))
-        pk = view_kwargs.get("pk", context.get("pk"))
-        is_listview = isinstance(view, django.views.generic.ListView) or context.get("is_listview")
-        try:
-            base_url = context.get("base_url", request.resolver_match.url_name)
-        except (AttributeError):
-            base_url = None
-
-        #view = context["view"]
-        #request = view.request
-        #model = getattr(view, "model", )
-        #delete pk = get_pk_from_url(request.path)
-        #pk = view.kwargs.get("pk")
-
-        # subtitle.
-        # ----------------------------------------------------------------------
-        if (context.get("subtitle") is None):
-            if (context.get("object")):
-                context["subtitle"] = str(context["object"])
-            elif model_meta != None:
-                if is_listview:
-                    context["subtitle"] = getattr(model_meta, "verbose_name_plural", "")
-                else:
-                    context["subtitle"] = getattr(model_meta, "verbose_name", "")
-
-        # submenu.
-        # ----------------------------------------------------------------------        
-        # Menú de opciones que se mostrará en la página.
-        # Botón página principal del módulo.
-        mindex = html.a(inner=html.img(src=var.IMG_HOME,
-        alt=_("Indice")), id="menu-index", data="index",
-        cssclass="btn btn-light btn-sm", title=_("Página principal del módulo."))
-        # Botón istado.
-        mlist = html.a(inner=html.img(src=var.IMG_LIST,
-        alt=_("Listado")), id="menu-list", data="list",
-        cssclass="btn btn-light btn-sm", title=_("Ir al listado."))
-        # Botón crear nuevo.
-        mcreate = html.a(inner=html.img(src=var.IMG_ADD,
-        alt=_("Nuevo")), id="menu-create", data="create",
-        cssclass="btn btn-light btn-sm", title=_("Crear nuevo registro."))
-        # Botón modificar.
-        mupdate = html.a(inner=html.img(src=var.IMG_EDIT,
-        alt=_("Modificar")), id="menu-update", data="update",
-        cssclass="btn btn-light btn-sm", title=_("Modificar este registro."))
-        # Botón eliminar.
-        mdelete = html.a(inner=html.img(src=var.IMG_DELETE,
-        alt=_("Eliminar")), id="menu-delete", data="delete",
-        cssclass="btn btn-danger btn-sm", title=_("Eliminar este registro."))
-        # Botón imprimir.
-        mprint = html.a(inner=html.img(src=var.IMG_PRINT,
-        alt=_("Imprimir")), id="menu-print", data="print", target="_blank",
-        cssclass="btn btn-info btn-sm", title=_("Imprimir este registro."))
-        # Botón imprimir alternativo, para cuando no exista una url
-        # app-model-print. Este botón no tendrá url, en cambio tendrá un evento
-        # onclick='window.print()'.
-        mprint_alt = html.a(inner=html.img(src=var.IMG_PRINT,
-        alt=_("Imprimir")), id="menu-print-alt", data="print_alt",
-        onclick="window.print()", cssclass="btn btn-info btn-sm",
-        title=_("Imprimir."))
-
-        # Es posible declarar en la vista estos menús a nuestro antojo.
-        mindex = context.get("mindex", mindex)
-        mlist = context.get("mlist", mlist)
-        mcreate = context.get("mcreate", mcreate)
-        mupdate = context.get("mupdate", mupdate)
-        mdelete = context.get("mdelete", mdelete)
-        mprint = context.get("mprint", mprint)
-
-        menus = [mindex, mlist, mcreate, mupdate, mdelete, mprint]
-
-        # Si el submenú no se establece en la vista, lo establecemos aquí.
-        if (not context.get("submenu")):
-            # Tratamos de obtener el nombre de la url desde el objeto request.
-            # o reconstruyendola desde el nombre del modelo y la aplicación.
-            if not base_url:
-                # Tratamos de obtenerla contruyendola con el modelo y la vista.
-                if model_meta != None:
-                    model_name = getattr(model_meta, "model_name", 
-                        str(model).lower())
-                    app_label = getattr(model_meta, "app_label", "")
-                    base_url = f"{app_label}-{model_name}"
-                else:
-                    base_url = ""
-
-            # Quitamos los nombres al final que podrian coicindir con uno de los
-            # menús específicos y no necesariamente uno 'base' que es lo que 
-            # queremos. app-model-detail -> app-model
-            mnames = ("list", "detail", "update", "create", "delete", "print")
-            if (base_url.split("-")[-1].lower() in mnames):
-                base_url = "-".join(base_url.split("-")[:-1])
-
-            context["base_url"] = base_url
-            submenu = list()
-            menus_add = list()
-
-            for menu in menus:
-                url_name = f"{base_url}-{menu.data}"
-                # Obtenemos la URL del botón mediante reverse. Primero 
-                # evaluándola con el argumento pk, y si falla la evaluamos sin 
-                # agumentos. Los botones que fallen en la evaluación no serán 
-                # incluidos.
-                try:
-                    menu.href = reverse(url_name, kwargs={"pk": pk})
-                except (NoReverseMatch):
-                    try:
-                        menu.href = reverse(url_name)
-                    except (NoReverseMatch):
-                        continue
-
-                submenu.append(menu)
-                menus_add.append(str(menu.data))
-
-            # Si el menu-print no se especifica, será agregado en su lugar el
-            # menu-print_alt, que tendrá un evento onclick='window.print()'.
-            if (not "print" in menus_add):
-                submenu.append(mprint_alt)
-
-            context["submenu_nueva_version"] = submenu
-        return context
-
-
 def view_decorator(company_field="company", company_in_url="company", 
     pk_field="pk", pk_in_url="pk"):
     """
@@ -292,7 +154,6 @@ def view_decorator(company_field="company", company_in_url="company",
         con un nombre diferente a 'pk', por ejemplo 'warehouse':
 
             (model, {'company': kwargs['company'], 'pk': kwargs['warehouse']})
-
     """
     from company.models import Company
 
@@ -305,29 +166,6 @@ def view_decorator(company_field="company", company_in_url="company",
             except (AttributeError, KeyError):
                 company = get_object_or_404(Company, pk=kwargs[company_in_url])
         return company
-
-    # def get_vars(view_instance):
-    #     # El pk de la empresa estará presente en la url como 'company'. 
-    #     # Todo objeto a obtener tendrá que demostrase que dicho objeto 
-    #     # pertenece a dicha empresa.
-    #     model = view_instance.model
-    #     kwargs = view_instance.kwargs
-    #     company_pk = kwargs[company_in_url]
-
-    #     try:
-    #         pk = kwargs[pk_in_url]
-    #     except (KeyError):
-    #         # No hay un objeto, es posible que sea un 
-    #         # CreateView o TemplateView, etc.
-    #         obj, pk = None, None
-    #         company = get_object_or_404(Company, pk=company_pk)
-    #     else:
-    #         filter_kwargs = {company_field: company_pk, pk_field: pk}
-    #         obj = get_object_or_404(model, **filter_kwargs)
-    #         company = functools.reduce(getattr, [obj] + company_field.split("__"))
-
-    #     return {"model": model, "kwargs": kwargs, "company_pk": company_pk, 
-    #         "pk": pk, "object": obj, "company": company}
 
     def new_get_object(view_instance, queryset=None):
 
@@ -379,6 +217,30 @@ def view_decorator(company_field="company", company_in_url="company",
                 pass
         return super(view_instance.__class__, view_instance).form_valid(form)
 
+    def new_dispatch(view_instance, request, *args, **kwargs):
+        company_permission_required = getattr(view_instance, 
+            "company_permission_required", None)
+
+        if (company_permission_required):
+            user = request.user
+            company = get_company(view_instance)
+
+            if not user.has_company_permission(company=company, 
+                permission=company_permission_required):
+                raise PermissionDenied("Acceso denegado. no tiene permisos suficientes.")
+
+        return super(view_instance.__class__, view_instance).dispatch(
+            request, *args, **kwargs)
+
+    def new_get_context_data(view_instance, **kwargs):
+        view_class = view_instance.__class__
+        context = super(view_class, view_instance).get_context_data(**kwargs)
+        user = view_instance.request.user
+        company = get_company(view_instance)
+        context["user_company_permissions"] = user.get_company_permissions(company)
+        context["user_company_groups"] = user.get_company_groups(company)
+        return context
+
     def _generic_view_class_wrapper(view_class):
         if hasattr(view_class, "get_object"):
             view_class.get_object = new_get_object
@@ -389,16 +251,16 @@ def view_decorator(company_field="company", company_in_url="company",
         if hasattr(view_class, "form_valid"):
             view_class.form_valid = new_form_valid
 
+        view_class.get_context_data = new_get_context_data
+        view_class.dispatch = new_dispatch
+
         return view_class
 
     return _generic_view_class_wrapper
 
 
 class ModelBase(text.Text):
-    """
-    Clase con métodos comunes para heredar en los modelos.
-
-    """
+    """Clase con métodos comunes para heredar en los modelos."""
 
     def __str__(self):
         return getattr(self, "name", None) or getattr(self, "pk", "ModelBase")
@@ -436,22 +298,6 @@ class ModelBase(text.Text):
         Método 'clean' de los modelos en Django.
         """
         clean = super().clean(*args, **kwargs)
-        # Lo reemplazamos por:
-            # MIDDLEWARE = [
-                # ...
-                # 'simple_history.middleware.HistoryRequestMiddleware',
-            # ]
-        # Almacenamos en el campo 'history' de la app 'django-simple-history'
-        # el usuario que módificó, ya que la app en custión no lo hace.
-        #try:
-        #    history = self.history.last()
-        #    if (history.history_type == "+"):
-        #        history.history_user = self.create_user
-        #    else:
-        #        history.history_user = self.update_user
-        #    history.save()
-        #except (BaseException):
-        #    pass
         return clean
 
     def getattr(self, name, default="__raise_exception__"):
@@ -484,7 +330,7 @@ class ModelBase(text.Text):
                 f"Error en {repr(self)} obteniendo el atributo '{name}'. {repr(attr)} no tiene un atributo llamado '{n}'.")
         return attr
 
-    def GetBarcode(self, code=None, strtype="code128"):
+    def get_barcode(self, code=None, strtype="code128"):
         """
         Obtiene el código de barras de este objeto.
         según su salida str.
@@ -502,7 +348,7 @@ class ModelBase(text.Text):
         except (BaseException) as e:
             return e
 
-    def GetThis(self):
+    def get_this(self):
         """
         Obtiene este objeto desde la base de datos.
 
@@ -512,25 +358,20 @@ class ModelBase(text.Text):
         if self.pk:
             return self.__class__.objects.get(pk=self.pk)
 
-    def GetDetail(self, include_parents=False, include_hidden=False):
-        """
-        Obtiene el detalle del objeto.
-        """
-        detail = fuente.detail.Detail(self)
-        detail.SetFieldsDefault(include_parents=include_parents, include_hidden=include_hidden)
-        return detail
-
-    def ToDict(self, to_json=False, for_json=False, no_json_serialize_to_str=False):
+    def to_dict(self, to_json: bool=False, for_json: bool=False, 
+        no_json_serialize_to_str: bool=False):
         """
         Obtiene un diccionario con los nombres de los campos como claves,
         y otro diccionario como valores, con algunos valores de la field.
 
-        to_json = True: devolverá un objeto Json.
+        Parameters:
+            to_json = True: devolverá un objeto Json.
 
-        for_json = True: devolverá un diccionario válido para ser serializado a json.
+            for_json = True: devolverá un diccionario válido para ser 
+            serializado a json.
 
-        no_json_serialize_to_str = True: Para los campos que no sean serializados a json,
-            serán convertidos a string mediante str(value).
+            no_json_serialize_to_str = True: Para los campos que no sean 
+            serializados a json, serán convertidos a string mediante str(value).
         """
         out = {}
         fields = self.GetFields()
@@ -564,31 +405,26 @@ class ModelBase(text.Text):
             return json.dumps(out)
         return out
 
-    def ToJson(self):
-        """
-        Obtiene un objeto tipo Json con los datos de los campos.
-        """
+    def to_json(self):
+        """Obtiene un objeto tipo Json con los datos de los campos."""
         return self.ToDict(to_json=True)
 
     @classmethod
-    def GetImg(self, default=""):
+    def get_img(self, default=""):
         """
-        Trata de obtener la imagen asignada
-        a este objecto o modelo.
-        De no encontrar una ruta de imagen, devolverá
-        el valor del parámetro default.
+        Trata de obtener la ruta de la imagen asignada a este objecto o modelo.
+        De no encontrar una ruta de imagen, devolverá el valor del parámetro 
+        default.
         """
         # Buscamos una field (campo) de tipo image o file
         #  que se hay declarado con algunos de estos nombres.
-        img = getattr(self, "image.url", getattr(self, "img.url", None))
+        field = getattr(self, "image", 
+                getattr(self, "img", 
+                getattr(self, "icon", 
+                getattr(self, "logo", 
+                getattr(self, "photo", object)))))
 
-        # Buscamos en las variables del módulo fuente.var, alguna que
-        # coincida con el nombre del modelo en cuestión. Las variables de
-        # imagenes están declaradas en mayúsculas y empiezan con 'IMG_'.
-        # Ejemplo: IMG_MODELNAME
-        if (not img):
-            img = vars().get(f"IMG_{self.__class__.__name__.upper()}", "")
-        return img
+        return getattr(field, "url", "") or default
 
     @classmethod
     def GetFields(self, solo_editables=False):
@@ -758,23 +594,22 @@ class ModelBase(text.Text):
             out[field.name] = item
         return out
 
-    def GetHistory(self):
+    def get_history(self):
         """
-        Obtiene el historial de cambios realizadas al objeto
-        desde su creación, con 'django-simple-history'.
+        Obtiene el historial de cambios realizados a este objeto con 
+        'django-simple-history'.
         """
         try:
             return self.history.all()
-        except (AttributeError):
-            return None
+        except (AttributeError) as e:
+            warnings.warn(e)
 
-    def GetHistoryAll(self):
+    def get_history_all(self):
         """
         Obtiene el historial de cambios realizados a todos
         los objetos del modelo, con 'django-simple-history'.
         """
         try:
             return self.history.model.objects.all()
-        except (AttributeError):
-            return None
-
+        except (AttributeError) as e:
+            warnings.warn(e)

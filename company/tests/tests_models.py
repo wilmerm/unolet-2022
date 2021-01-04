@@ -1,7 +1,7 @@
 from django.test import TestCase
 
+from company.models import Company, CompanyPermission, CompanyPermissionGroup
 from user.tests.tests_models import get_or_create_user
-from .models import Company
 
 
 def get_or_create_company():
@@ -12,3 +12,10 @@ def get_or_create_company():
         company.save()
         company.users.add(get_or_create_user())
     return company
+
+
+class CompanyPermissionModelTest(TestCase):
+    model = CompanyPermission
+
+    def test_populate_method(self):
+        self.model.populate()

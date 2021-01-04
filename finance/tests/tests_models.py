@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from company.tests import get_or_create_company
+from company.tests.tests_models import get_or_create_company
 from finance.models import Currency
 
 

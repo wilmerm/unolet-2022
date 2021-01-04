@@ -8,6 +8,7 @@ from django.contrib.sites.managers import CurrentSiteManager
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse_lazy
+from django.apps import apps
 
 from unoletutils.libs import utils
 
@@ -62,6 +63,15 @@ class Company(models.Model, utils.ModelBase):
     def clean(self):
         if not self.pk:
             self.site = Site.objects.get_current()
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            # Cuando se registra una nueva empresa, se deberán crear los 
+            # permisos de empresa para ella.
+            out = super().save(*args, **kwargs)
+            CompanyPermission.populate(company=self)
+            return out
+        return super().save(*args, **kwargs)
         
     def user_has_access(self, user) -> bool:
         """Comprueba si el usuario tiene acceso a esta empresa."""
@@ -96,5 +106,146 @@ class Company(models.Model, utils.ModelBase):
             return True
         return False
 
-    
 
+class CompanyPermission(models.Model, utils.ModelBase):
+    """
+    Permiso dentro de una empresa.
+
+    Este modelo define los permisos personalizados de forma extraordinaria para
+    este proyecto. Estos serán asignados a los usuarios por empresa (no global).
+
+    Por ejemplo: El sistema necesita restringir a los usuarios, tal y como se 
+    haría utilizando los permisos predeterminados de Django, pero en este caso
+    los permisos serán asignados por empresa y no de forma Global. Esto hará 
+    que un usuario tenga un permiso determinado en una empresa, pero en otra 
+    empresa puede que no lo tenga.
+
+    Estos permisos no serán gestionados por Django, sino que el sistema en si
+    contará con su propio sistema de validación de permisos.
+
+    Esto tampoco afectará los permisos predeterminados de Django, ni tampoco 
+    afectará la forma de acceder al panel de administración de Django.
+
+    ¿Cómo funciona?
+    De lo más simple. Se registra el permiso, asignamos el permiso al usuario,
+    establecemos el codename del permisos en la vista como permission_required,
+    luego se determinará si el usuario pertenece a la empresa que intenta 
+    acceder y si dicho usuario tiene asignado el permiso requerido.
+    """
+
+    APP_LABELS = (
+        ("user", _l("usuario")), 
+        ("audit", _l("auditoría")), 
+        ("company", _l("empresa")), 
+        ("warehouse", _l("almacén")), 
+        ("document", _l("documento")), 
+        ("finance", _l("finanzas")),
+        ("inventory", _l("inventario")),
+        ("person", _l("persona")),
+    )
+
+    ACTIONS = (
+        ("view", _l("ver")), 
+        ("add", _l("agregar")),
+        ("change", _l("modificar")),
+        ("delete", _l("eliminar"))
+    )
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+
+    codename = models.CharField(_l("código"), max_length=50, editable=False)
+
+    name = models.CharField(_l("nombre"), max_length=100)
+
+    description = models.CharField(_l("descripción"), max_length=500, blank=True)
+
+    class Meta:
+        verbose_name = _l("permiso por empresa")
+        verbose_name_plural = _l("permisos por empresa")
+        ordering = ["company", "codename", "name"]
+        constraints = [
+            models.UniqueConstraint(fields=("company", "codename"), 
+                name="unique_companypermission_codename"),
+            models.UniqueConstraint(fields=("company", "name"), 
+                name="unique_companypermission_name"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        self.codename = self.format_codename(self.codename, allowed="_.")
+        self.name = " ".join(self.name.split())
+        self.description = " ".join(self.description.split())
+
+    @classmethod
+    def populate(cls, company: Company=None, generic_permissions: list=None):
+        """
+        Registra los permisos para cada empresa registrada, o solo para la 
+        empresa indicada.
+        """
+        if not generic_permissions:
+            generic_permissions = []
+
+            for app_label, app_title in cls.APP_LABELS:
+                try:
+                    models = list(apps.get_app_config(app_label).get_models())
+                except (BaseException) as e:
+                    raise e.__class__(f"{app_label}. {e}") from e
+
+                for model in models:
+                    for action, action_title in cls.ACTIONS:
+                        codename = f"{app_label}.{action}_{model._meta.model_name}".lower()
+                        name = f"{action_title} {model._meta.verbose_name}".title()
+                        generic_permissions.append((codename, name))
+
+        if company != None:
+            for codename, name in generic_permissions:
+                permission = CompanyPermission(
+                    company=company, codename=codename, name=name)
+                permission.clean()
+                # El permiso se creará solo si no existe.
+                try:
+                    CompanyPermission.objects.get(company=company, 
+                        codename=permission.codename)
+                except (CompanyPermission.DoesNotExist):
+                    permission.save()
+            return
+        
+        for company in Company.objects.all():
+            cls.populate(company, generic_permissions)
+
+
+class CompanyPermissionGroup(models.Model, utils.ModelBase):
+    """
+    Grupos (como los django.auth.Group) pero para CompanyPermission.
+
+    Para trabajar los permisos de acceso por empresa.
+    """
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+
+    codename = models.CharField(_l("código"), max_length=50)
+
+    name = models.CharField(_l("nombre"), max_length=100)
+
+    permissions = models.ManyToManyField(CompanyPermission, 
+    verbose_name=_l("permisos"))
+
+    class Meta:
+        verbose_name = _l("grupo de permiso por empresa")
+        verbose_name_plural = _l("grupos permisos por empresa")
+        ordering = ["company", "codename", "name"]
+        constraints = [
+            models.UniqueConstraint(fields=("company", "codename"), 
+                name="unique_companypermissiongroup_codename"),
+            models.UniqueConstraint(fields=("company", "name"), 
+                name="unique_companypermissiongroup_name"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        self.codename = self.format_codename(self.codename, allowed="_")
+        self.name = " ".join(self.name.split())

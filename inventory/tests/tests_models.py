@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 
-from company.tests import get_or_create_company
+from company.tests.tests_models import get_or_create_company
 from document.tests.tests_models import get_or_create_document
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
 

@@ -8,26 +8,21 @@ Wilmer Martinez <wilmermorelmartinez@gmail.com>
 ## Dependencias
 * pillow
 * django-unoletutils
+* django-guardian https://django-guardian.readthedocs.io/en/stable/installation.html
 * django-simple-history https://django-simple-history.readthedocs.io/
 * django-bootstrap4
 
-
 ## Estructura de las urls
 Por nivel de prioridad las urls tendrán esta estructura:
-dominio.com/(company.pk)/(warehouse.pk)/...
+dominio.com/<int:company>/...
 
-Cada sitio contendrá una o varias empresas.
-Cada empresa contendrá uno o varios almacenes.
-Cada empresa contendrá sus propios artículos.
+## Permisos de acceso.
+Debido a que un usuario puede tener acceso a varias empresas, pero podría tener
+roles diferentes para cada  una, por ejemplo en la empresa A tiene permisos de 
+crear documentos pero no de crear artículos, en la empresa B tiene permisos de 
+crear artículos, etc. Para eso hacemos uso de django-guardian. De este modo 
+asignamos permisos a cada usuario para instancias de empresas de forma 
+individual.
 
-site.
-    company.
-        warehouse.
-        item
+https://django-guardian.readthedocs.io/en/stable/installation.html
 
-
-
-
-Cada grupo pertenecerá a una empresa.
-Y en la vista se determinará si dicho usuario está incluido en algun grupo de la empresa,
-y si dicho grupo tiene los permisos requeridos.
