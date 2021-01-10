@@ -6,12 +6,35 @@ import datetime
 import re
 from pathlib import Path
 from django.conf import settings
-
+from django.utils.html import format_html
 
 
 ICON_DIR = Path(__file__).resolve().parent.parent / 'static/icons'
 STATIC_URL = settings.STATIC_URL
+DATA = {} # Todos los íconos cargados aquí al iniciar el servidor.
+DEFAULT = "DEFAULT"
+RAISE_EXCEPTION = "RAISE_EXCEPTION"
 
+DEFAULT_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" '
+    'fill="currentColor" class="bi bi-circle-fill" viewBox="0 0 16 16">'
+    '<circle cx="8" cy="8" r="8"/></svg>')
+
+
+class IconError(Exception):
+    pass
+
+
+def populate():
+    """Carga los íconos en la variable 'DATA'."""
+    for path in ICON_DIR.iterdir():
+        try:
+            DATA[path.name] = {
+                "path": path, 
+                "url": STATIC_URL + "icons/" + path.name,
+                "data": format_html(open(path, "r").read()),
+            }
+        except (IOError):
+            continue
 
 
 def get_url(name: str, override: bool=True) -> str:
@@ -25,12 +48,7 @@ def get_url(name: str, override: bool=True) -> str:
     if not ".svg" in name:
         name += ".svg"
 
-    override = bool(override)
-
-    if override is False:
-        open(ICON_DIR / name, "r") # Lanzará una excepción si no se encuentra.
-
-    return STATIC_URL + "icons/" + name
+    return get_data(name, override=override)["url"]
     
 
 def get_data(name: str, override: bool=True) -> str:
@@ -46,16 +64,15 @@ def get_data(name: str, override: bool=True) -> str:
 
     override = bool(override)
 
-    if override is False:
-        return open(ICON_DIR / name, "r").read() # Lanzará una excepción...
+    if override == False:
+        #return open(ICON_DIR / name, "r").read() # Lanzará una excepción...
+        return DATA[name]
 
-    try:
-        return open(ICON_DIR / name, "r").read()
-    except (OSError):
-        return ""
+    return DATA.get(name, {"url": "", "path": "", "data": ""})
 
 
-def svg(name: str, size: str=None, fill: str=None, id: str=None) -> dict:
+def svg(name: str, size: str=None, fill: str=None, id: str=None, 
+    on_error=RAISE_EXCEPTION) -> dict:
     """
     Retorna el contenido del archivo SVG con el nombre indicado.
 
@@ -77,9 +94,15 @@ def svg(name: str, size: str=None, fill: str=None, id: str=None) -> dict:
     fill = fill or 'var(--secondary)'
 
     try:
-        svg = get_data(name, override=False)
-    except (BaseException):
-        return {"svg": "", "size": size, "fill": fill, "name": name, "id": id}
+        svg = get_data(name, override=False)["data"]
+    except (BaseException) as e:
+        if on_error == RAISE_EXCEPTION:
+            raise IconError(e) from e
+        if on_error == DEFAULT:
+            svg = DEFAULT_SVG
+        else:
+            svg = ""
+        return {"svg": svg, "size": size, "fill": fill, "name": name, "id": id}
 
     # Eliminamos los saltos de línea y espacios extras.
     svg = " ".join(svg.replace("\n", " ").split())
@@ -115,3 +138,7 @@ def svg(name: str, size: str=None, fill: str=None, id: str=None) -> dict:
         count=1)
 
     return {"svg": svg, "size": size, "fill": fill, "name": name, "id": id}
+
+
+# Al iniciar el servidor, se cargarán los iconos en la variable DATA.
+populate()

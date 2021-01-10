@@ -16,7 +16,7 @@ class WarehouseOnSiteManager(models.Manager):
             company__site=Site.objects.get_current())
 
 
-class Warehouse(models.Model, utils.ModelBase):
+class Warehouse(utils.ModelBase):
     """
     Un almacén es una entidad del mundo real que pertenece a una empresa.
 
@@ -31,9 +31,6 @@ class Warehouse(models.Model, utils.ModelBase):
     creados. De modo que, dichos documentos, tendrán la información que se haya 
     configurado en dicho almacén.
     """
-
-    company = models.ForeignKey(Company, on_delete=models.PROTECT, 
-    help_text=_l("empresa a la que pertenece este almacén."))
 
     name = models.CharField(_l("nombre"), max_length=100,
     help_text=_l("nombre para el público."))
@@ -57,6 +54,3 @@ class Warehouse(models.Model, utils.ModelBase):
 
     def __str__(self):
         return self.name
-
-    def get_absolute_url(self):
-        return reverse_lazy("warehouse-warehouse-detail", kwargs={"company": self.company.pk, "warehouse": self.pk})

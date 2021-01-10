@@ -1,0 +1,31 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+{% load base %}
+
+
+{% block subtitle %}
+    {% if object.pk %}
+        <img src="{{ object.get_img }}" alt="">
+        {{ object }}{% else %}{% trans 'Nuevo registro' %}
+    {% endif %}
+{% endblock %}
+
+{% block actions %}
+    {% list_action_links_for_object request object defaults="create list update delete" %}
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col col-0 {% if object.get_img %}col-sm-3 col-md-4{% endif %} p-2">
+            <img src="{{ object.get_img }}" alt="" class="w-100 h-auto">
+        </div>
+        <div class="col col-12 {% if object.get_img %}col-sm-9 col-md-8{% endif %}">
+            {% for dic in object.get_object_detail %}
+                {% detail_field request=request name=dic.field.verbose_name.title value=dic.display url=dic.value.get_absolute_url %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

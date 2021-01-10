@@ -22,7 +22,8 @@ class ModelForm(forms.ModelForm):
         """Establece el objeto 'company' a la instancia."""
         if instance and company:
             if not instance.pk:
-                instance.company = company
+                if hasattr(instance, "company"):
+                    instance.company = company
 
     def set_company_to_company_field(self, field, company, disabled=True):
         """

@@ -2,9 +2,10 @@ from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 
+from unoletutils.libs import utils
 
 
-class Person(models.Model):
+class Person(utils.ModelBase):
     """
     Persona.
     """

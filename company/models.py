@@ -1,5 +1,3 @@
-
-
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -9,12 +7,14 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse_lazy
 from django.apps import apps
+from django.utils.html import format_html
 
 from unoletutils.libs import utils
 
+from module.models import Module
 
 
-class Company(models.Model, utils.ModelBase):
+class Company(utils.ModelBase):
     """
     Representa una empresa en la base de datos.
 
@@ -22,6 +22,9 @@ class Company(models.Model, utils.ModelBase):
     almacenes. Entonces las empresas tendrían el 2do nivel de prioridad después
     de los sites.
     """
+
+    company = None
+    tags = None
 
     site = models.ForeignKey(Site, on_delete=models.PROTECT, editable=False)
 
@@ -35,6 +38,9 @@ class Company(models.Model, utils.ModelBase):
 
     business_name = models.CharField(_l("Razón social"), max_length=100,
     help_text=_l("nombre legal registrado de la empresa."))
+
+    logo = models.ImageField(_l("logo"), blank=True, 
+    upload_to=utils.upload_file_on_site)
 
     is_active = models.BooleanField(_l("activo"), default=True)
 
@@ -96,6 +102,18 @@ class Company(models.Model, utils.ModelBase):
         qs = self.admin_users.all() | self.users.all()
         return qs.filter(is_active=is_active)
 
+    def get_cascading_modules(self, parent=None):
+        out = []
+        for obj in Module.objects.filter(parent=parent):
+            out.append({
+                "name": _(obj.name), 
+                "description": _(obj.description),
+                "url": obj.build_url(company=self.pk),
+                "svg": format_html(obj.get_svg(fill="white")["svg"]),
+                "childrens": self.get_cascading_modules(parent=obj),
+            })
+        return out
+
     def get_warehouse_list(self, is_active=True):
         """Obtiene los almacenes de esta empresa."""
         return self.warehouse_set.filter(is_active=is_active)
@@ -107,7 +125,7 @@ class Company(models.Model, utils.ModelBase):
         return False
 
 
-class CompanyPermission(models.Model, utils.ModelBase):
+class CompanyPermission(utils.ModelBase):
     """
     Permiso dentro de una empresa.
 
@@ -151,7 +169,7 @@ class CompanyPermission(models.Model, utils.ModelBase):
         ("delete", _l("eliminar"))
     )
 
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    tags = None
 
     codename = models.CharField(_l("código"), max_length=50, editable=False)
 
@@ -194,12 +212,24 @@ class CompanyPermission(models.Model, utils.ModelBase):
                     raise e.__class__(f"{app_label}. {e}") from e
 
                 for model in models:
+                    if "historical" in model._meta.model_name:
+                        continue
                     for action, action_title in cls.ACTIONS:
                         codename = f"{app_label}.{action}_{model._meta.model_name}".lower()
                         name = f"{action_title} {model._meta.verbose_name}".title()
                         generic_permissions.append((codename, name))
 
         if company != None:
+            # Se borran los permisos que no estén en generic_permissions. Puede
+            # ser que se crearon en un momento, pero ya el modelo o aplicación
+            # por la que fueron creados ya no existe.
+            db_codenames = CompanyPermission.objects.values_list("codename", flat=True)
+            delete_codenames = []
+            for db_codename in db_codenames:
+                if not db_codename in dict(generic_permissions).keys():
+                    delete_codenames.append(db_codename)
+            CompanyPermission.objects.filter(codename__in=delete_codenames).delete()
+
             for codename, name in generic_permissions:
                 permission = CompanyPermission(
                     company=company, codename=codename, name=name)
@@ -216,14 +246,14 @@ class CompanyPermission(models.Model, utils.ModelBase):
             cls.populate(company, generic_permissions)
 
 
-class CompanyPermissionGroup(models.Model, utils.ModelBase):
+class CompanyPermissionGroup(utils.ModelBase):
     """
     Grupos (como los django.auth.Group) pero para CompanyPermission.
 
     Para trabajar los permisos de acceso por empresa.
     """
 
-    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    tags = None
 
     codename = models.CharField(_l("código"), max_length=50)
 

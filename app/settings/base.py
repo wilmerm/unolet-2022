@@ -30,6 +30,15 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+
+    # https://django-autocomplete-light.readthedocs.io/en/master/install.html
+    # La documentación dice que debemos agregarla antes de django.contrib.admin.
+    # Esto es para anular el jquery.init.jsscript provisto por el administrador, 
+    # que configura jQuery con noConflict, haciendo que jQuery esté disponible 
+    # django.jQuerysolo en y no $.
+    'dal',
+    'dal_select2',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -41,7 +50,6 @@ INSTALLED_APPS = [
 
     # Aplicaciones externas.
     
-    'guardian',
     'simple_history',
     'bootstrap4',
 
@@ -127,12 +135,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-
-AUTHENTICATION_BACKENDS = (
-    'django.contrib.auth.backends.ModelBackend', # this is default
-    'guardian.backends.ObjectPermissionBackend', # django-guardian
-)
 
 
 

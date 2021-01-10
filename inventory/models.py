@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum, F
 from django.core.exceptions import ValidationError
 from django.core.validators import (MinValueValidator, MaxValueValidator)
 from django.utils.translation import gettext_lazy as _l
@@ -13,12 +14,10 @@ def get_default_currency():
     return Currency.objects.filter(is_default=True).last()
 
 
-class ItemGroup(models.Model, utils.ModelBase):
+class ItemGroup(utils.ModelBase):
     """
     Grupo de artículos.
     """
-
-    company = models.ForeignKey("company.Company", on_delete=models.CASCADE)
 
     name = models.CharField(_l("grupo"), max_length=50)
 
@@ -31,7 +30,7 @@ class ItemGroup(models.Model, utils.ModelBase):
         ]
 
     def __str__(self):
-        self.name
+        return self.name
 
     def clean(self):
         self.name = " ".join(self.name.split()).upper()
@@ -41,12 +40,10 @@ class ItemGroup(models.Model, utils.ModelBase):
         return super().save(*args, **kwargs)
 
 
-class ItemFamily(models.Model, utils.ModelBase):
+class ItemFamily(utils.ModelBase):
     """
     Familia de artículos.
     """
-
-    company = models.ForeignKey("company.Company", on_delete=models.CASCADE)
     
     name = models.CharField(_l("familia"), max_length=50)
 
@@ -69,13 +66,10 @@ class ItemFamily(models.Model, utils.ModelBase):
         return super().save(*args, **kwargs)
     
 
-class Item(models.Model, utils.ModelBase):
+class Item(utils.ModelBase):
     """
     Artículo de inventario.
     """
-
-    # Todo artículo pertenecerá a una única empresa.
-    company = models.ForeignKey("company.Company", on_delete=models.CASCADE)
 
     # Código único del artículo para cada empresa.
     code = models.CharField(_l("código"), max_length=8, editable=False)
@@ -93,11 +87,12 @@ class Item(models.Model, utils.ModelBase):
     blank=True)
 
     group = models.ForeignKey(ItemGroup, on_delete=models.SET_NULL, null=True, 
-    blank=True, help_text=_l("grupo de artículos al que pertenece."))
+    blank=True, verbose_name=_l("grupo"),
+    help_text=_l("grupo de artículos al que pertenece."))
 
     family = models.ForeignKey(ItemFamily, on_delete=models.SET_NULL, null=True, 
-    blank=True, help_text=_l("familia de artículos al que pertenece. Puede ser "
-    "la marca del fabricante."))
+    blank=True, verbose_name=_l("familia"),
+    help_text=_l("Puede ser la marca del fabricante."))
 
     class Meta:
         verbose_name = _l("artículo")
@@ -138,11 +133,46 @@ class Item(models.Model, utils.ModelBase):
         self.codename = " ".join(self.codename.split()).upper()
         return super().save(*args, **kwargs)
 
+    def get_available(self, warehouse=None):
+        """Obtiene la cantidad disponible global de este artículo."""
+        from document.models import Document
+        
+        inp = Movement.input_objects.filter(item=self)
+        out = Movement.output_objects.filter(item=self)
 
-class Movement(models.Model, utils.ModelBase):
+        if warehouse != None:
+            inp = inp.filter(document__warehouse=warehouse)
+            out = out.filter(document__warehouse=warehouse)
+
+        input_sum = inp.aggregate(s=models.Sum("quantity"))["s"] or 0
+        output_sum = out.aggregate(s=models.Sum("quantity"))["s"] or 0
+        return input_sum - output_sum
+
+
+class InputMovementManager(models.Manager):
+    """Manager para movimientos que afectan el inventario como entrada."""
+
+    def get_queryset(self):
+        from document.models import DocumentType
+        return super().get_queryset().filter(
+            document__doctype__inventory=DocumentType.INPUT)
+
+
+class OutputMovementManager(models.Manager):
+    """Manager para movimientos que afectan el inventario como salida."""
+
+    def get_queryset(self):
+        from document.models import DocumentType
+        return super().get_queryset().filter(
+            document__doctype__inventory=DocumentType.OUTPUT)
+
+
+class Movement(utils.ModelBase):
     """
     Movimiento de inventario.
     """
+
+    company = None # la empresa será document.company
 
     document = models.ForeignKey("document.Document", on_delete=models.CASCADE)
 
@@ -163,11 +193,9 @@ class Movement(models.Model, utils.ModelBase):
     tax = models.DecimalField(_l("impuesto"), max_digits=22, decimal_places=2,
     validators=[MinValueValidator(0)])
 
-    currency = models.ForeignKey("finance.Currency", on_delete=models.PROTECT,
-    default=get_default_currency, null=True, verbose_name=_l("moneda"))
-
-    currency_rate = models.DecimalField(_l("tasa de cambio"), max_digits=10, 
-    decimal_places=2, default=1, validators=[MinValueValidator(1)])
+    objects = models.Manager()
+    input_objects = InputMovementManager()
+    output_objects = OutputMovementManager()
 
     class Meta:
         verbose_name = _l("movimiento")
@@ -175,7 +203,7 @@ class Movement(models.Model, utils.ModelBase):
         ordering = ["number"]
 
     def __str__(self):
-        return "%s %s" % (self._meta.verbose_name, self.item)
+        return f"{self.item} = {self.quantity}"
 
     def _get_next_number(self):
         try:
@@ -185,15 +213,65 @@ class Movement(models.Model, utils.ModelBase):
             return 1
 
     def save(self, *args, **kwargs):
+        """
+        Guarda el movimiento. 
+
+        Hay un parametro opcional:
+            not_calculate_document (bool): Determina si se calculará o no los 
+            campos en el documento para actualizar sus campos con 
+            document.calculate()
+        """
+        # Este parámetro determinará si se ejecutará self.document.calculate()
+        # Es útil cuando intentamos guardar muchos movimiento a la vez, ya que 
+        # en el mismo método calculate del documento se recorrerán cada uno de
+        # los movimientos.
+        try:
+            not_calculate_document = bool(kwargs.pop("not_calculate_document"))
+        except (KeyError):
+            not_calculate_document = False
+
         if not getattr(self, "number", None):
             self.number = self._get_next_number()
-        super().save(*args, **kwargs)
+        
+        out = super().save(*args, **kwargs)
+
+        # Actualizamos los campos de consulta en el documento relacionado.
+        if not not_calculate_document:
+            self.document.calculate()
+
+        return out
 
     def get_amount(self):
+        """Obtiene el importe (cantidad x precio)."""
+        return (self.price * self.quantity)
+
+    def get_amount_with_discount(self):
         """Obtiene el importe ((cantidad x precio) - descuento)."""
         return (self.price * self.quantity) - self.discount
 
     def get_total(self):
         """Obtiene el total ((cantidad x precio) - descuento) + impuesto."""
-        return self.get_amount() + self.tax
+        return self.get_amount_with_discount() + self.tax
+
+    def get_local_amount(self):
+        """Igual que self.get_amount * self.document.currency_rate."""
+        return self.get_amount() * (self.document.currency_rate or 1)
+
+    def get_local_amount_with_discount(self):
+        """Igual self.get_amount_with_discount * self.document_currency_rate."""
+        currency_rate = self.document.currency_rate or 1
+        return self.get_amount_with_discount() * currency_rate
+
+    def get_local_total(self):
+        """Igual que self.get_total * self.document.currency_rate."""
+        return self.get_total() * (self.document.currency_rate or 1)
+
+    def get_available(self, warehouse=None):
+        """
+        Obtiene el disponible del artículo en este movimiento para el 
+        almacén indicado o el almacén del documento de este movimiento.
+        """
+        warehouse = warehouse or self.document.warehouse
+        return self.item.get_available(self.document.doctype.company, warehouse)
+
 

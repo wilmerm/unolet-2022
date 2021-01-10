@@ -1,30 +1,57 @@
 from django.shortcuts import render
-from django.views.generic import (ListView, DetailView)
 from django.shortcuts import get_object_or_404
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
+
 
 #from guardian.mixins import PermissionRequiredMixin, LoginRequiredMixin
 
-from unoletutils.libs.utils import view_decorator
-from .models import Warehouse
+from unoletutils.views import (ListView, DetailView, UpdateView, CreateView, 
+    DeleteView, TemplateView)
+from warehouse.models import Warehouse
+from warehouse.forms import WarehouseForm
 
 
-@view_decorator()
 class WarehouseListView(ListView):
     """Listado de almacenes de la empresa actual."""
     model = Warehouse
+    template_name = "warehouse/warehouse_list.html"
+    paginate_by = 20
+    list_display = (
+        ("name", _l("nombre")),
+        ("address", _l("address")),
+    )
 
     def get_queryset(self):
         company = self.request.company
-        qs = company.get_warehouse_list()
-        return qs
+        self.queryset = company.get_warehouse_list()
+        return super().get_queryset()
     
 
-@view_decorator(pk_in_url="warehouse")
 class WarehouseDetailView(DetailView):
     """Detalle de un almacén."""
     model = Warehouse
     company_permission_required = "warehouse.view_warehouse"
-    
-    def get_object(self, queryset=None):
-        return get_object_or_404(self.model, company=self.kwargs.get("company"), 
-            pk=self.kwargs.get("warehouse"))
+
+    def name(self):
+        return "HOLA MUNDO"
+
+
+class WarehouseCreateView(CreateView):
+    """Crea un almacén."""
+    model = Warehouse
+    form_class = WarehouseForm
+    #company_permission_required = "warehouse.add_warehouse"
+
+
+class WarehouseUpdateView(UpdateView):
+    """Modifica un almacén."""
+    model = Warehouse
+    form_class = WarehouseForm
+    #company_permission_required = "warehouse.change_warehouse"
+
+
+class WarehouseDeleteView(DeleteView):
+    """Modifica un almacén."""
+    model = Warehouse
+    #company_permission_required = "warehouse.change_warehouse"

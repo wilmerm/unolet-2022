@@ -1,38 +1,29 @@
 """
 Conjunto de utilidades.
 """
-
+import copy
 import warnings
 import sys
 from io import BytesIO
 import datetime
-import functools
 from decimal import Decimal
 import warnings
-
+import functools
 try:
     import barcode
     from barcode.writer import SVGWriter, ImageWriter
 except (ImportError) as e:
     warnings.warn(e)
-
 try:
-    from django.utils.translation import gettext_lazy as _
-    from django.core.paginator import Paginator
-    from django.core.exceptions import PermissionDenied
-    from django.http import JsonResponse, Http404
-    from django.urls import reverse_lazy, reverse, NoReverseMatch
-    import django.views.generic
+    from django.utils.translation import gettext as _
+    from django.utils.translation import gettext_lazy as _l
     from django.db import models
-    from django.contrib import messages
-    from django.contrib.auth.decorators import (login_required, 
-        permission_required, user_passes_test)
-    from django.shortcuts import get_object_or_404, get_list_or_404
+    from django.urls import reverse_lazy, NoReverseMatch
+    from django.contrib.sites.models import Site
 except (ImportError) as e:
     warnings.warg(e)
 
-#from . import (var, html, text, json, report)
-from . import text
+from . import text, json, icons
 
 
 def valuecallable(obj):
@@ -114,169 +105,134 @@ def get_barcode(code: str, strtype: str="code128", render: bool=True,
     return c
 
 
-def view_decorator(company_field="company", company_in_url="company", 
-    pk_field="pk", pk_in_url="pk"):
+def upload_file_on_site(instance, filename):
     """
-    Decorador para las vistas genéricas del proyecto Unolet.
-
-    La url de las mayoría de los objetos del proyecto, contiene el id de la 
-    empresa en la que se está trabajando, y de la cual pertenece el objeto que
-    en ese momento se está gestionando.
-
-    @view_decorator("company")
-    class MyDetailView(DetailView):
-        pass
-
-    Parameters:
-        company_field (str): nombre del campo en el modelo que contiene la 
-        referencia a la empresa.
-
-        company_in_url (str): nombre que identifica el pk de la empresa en la URL.
-
-        pk_field (str): nombre del campo en el modelo que contiene el pk del 
-        objeto que se va a obtener.
-
-        pk_in_url (str): nombre que  identifica el pk del objeto en la URL.
-        ----
-
-        El siguiente ejemplo buscará un objeto que coincida con sus campos 
-        'campany' y 'pk':
-
-            (model, {'company', kwargs['company'], 'pk': kwargs['pk']})
-        
-        Este otro ejemplo el objeto en cuestión no tiene un campo 'company' pero 
-        tiene un related field ForeingKey de cual dicho objeto si lo tiene 
-        (suponiendo que el related field tiene el nombre de 'doctype'):
-
-            (model, {'doctype__company': kwargs['company'], 'pk': kwargs['pk']})
-
-        Este otro ejemplo el campo que contiene el pk en la URL se especificó 
-        con un nombre diferente a 'pk', por ejemplo 'warehouse':
-
-            (model, {'company': kwargs['company'], 'pk': kwargs['warehouse']})
+    Función para ser utilizada en campos de subida de archivo, para guardar el 
+    archivo en una ruta ideal que contiene el nombre del site, aplicación y 
+    modelo. 
+    Ejemplo: 'www.misite.com/miapp/mimodel/filename'.
     """
-    from company.models import Company
-
-    def get_company(view_instance):
-        try:
-            company = view_instance.request.company
-        except (AttributeError):
-            try:
-                company = view_instance.get_context_data()["company"]
-            except (AttributeError, KeyError):
-                company = get_object_or_404(Company, pk=kwargs[company_in_url])
-        return company
-
-    def new_get_object(view_instance, queryset=None):
-
-        company = get_company(view_instance)
-        company_pk = view_instance.kwargs.get(company_in_url)
-        pk = view_instance.kwargs.get(pk_in_url)
-        
-        if company_pk and pk:
-            filters = {company_field: company_pk, pk_field: pk}
-            obj = get_object_or_404(view_instance.model, **filters)
-        else:
-            obj = None
-
-        # La objeto debe pertenecer a la misma empresa obtenida por url.
-        if obj:
-            obj_company = functools.reduce(getattr, [obj] + company_field.split("__"))
-            if obj_company != company:
-                raise Http404(f"La empresa {company} no es la misma empresa "
-                    f"del objeto {obj_company}")
-        
-        # La empresa debe estar activa.
-        if not company.is_active:
-            raise Http404(f"La empresa {company} no está activa.")
-
-        # El usuario debe tener acceso a esta empresa.
-        if not company.user_has_access(view_instance.request.user):
-            raise Http404(f"El usuario {request.user} no pertenece a {company}")
-
-        return obj
-
-    def new_get_form_kwargs(view_instance):
-        """Incluimos la instancia 'company' a los argumentos del formulario."""
-        kwargs = super(view_instance.__class__, view_instance).get_form_kwargs()
-        kwargs["company"] = get_company(view_instance)
-        return kwargs
-
-    def new_form_valid(view_instance, form):
-        user = view_instance.request.user
-        company = get_company(view_instance)
-
-        if not form.instance.pk:
-            try:
-                form.instance.create_user = user
-            except (AttributeError):
-                pass
-            try:
-                form.instance.company = company
-            except (AttributeError):
-                pass
-        return super(view_instance.__class__, view_instance).form_valid(form)
-
-    def new_dispatch(view_instance, request, *args, **kwargs):
-        company_permission_required = getattr(view_instance, 
-            "company_permission_required", None)
-
-        if (company_permission_required):
-            user = request.user
-            company = get_company(view_instance)
-
-            if not user.has_company_permission(company=company, 
-                permission=company_permission_required):
-                raise PermissionDenied("Acceso denegado. no tiene permisos suficientes.")
-
-        return super(view_instance.__class__, view_instance).dispatch(
-            request, *args, **kwargs)
-
-    def new_get_context_data(view_instance, **kwargs):
-        view_class = view_instance.__class__
-        context = super(view_class, view_instance).get_context_data(**kwargs)
-        user = view_instance.request.user
-        company = get_company(view_instance)
-        context["user_company_permissions"] = user.get_company_permissions(company)
-        context["user_company_groups"] = user.get_company_groups(company)
-        return context
-
-    def _generic_view_class_wrapper(view_class):
-        if hasattr(view_class, "get_object"):
-            view_class.get_object = new_get_object
-
-        if hasattr(view_class, "get_form_kwargs"):
-            view_class.get_form_kwargs = new_get_form_kwargs
-
-        if hasattr(view_class, "form_valid"):
-            view_class.form_valid = new_form_valid
-
-        view_class.get_context_data = new_get_context_data
-        view_class.dispatch = new_dispatch
-
-        return view_class
-
-    return _generic_view_class_wrapper
+    site = getattr(instance, "site", Site.objects.get_current())
+    return "/".join([site.domain, instance.__class__._meta.app_label, 
+        instance.__class__._meta.model_name, filename])
 
 
-class ModelBase(text.Text):
-    """Clase con métodos comunes para heredar en los modelos."""
+def upload_file_on_company(instance, filename):
+    """
+    Función para ser utilizada en campos de subida de archivos, para guardar el
+    archivo en una ruta ideal que contiene el nombre del site, empresa, 
+    aplicación y modelo. 
+    Ejemplo: 'www.misite.com/company/miapp/mimodel/filename'.
+    """
+    site = getattr(instance, "site", Site.objects.get_current())
+    company = getattr(instance.get_company(), "id", 0)
+    return "/".join([site.domain, company, instance.__class__._meta.app_label, 
+        instance.__class__._meta.model_name, filename])
+
+
+class ModelBase(models.Model, text.Text):
+    """
+    Clase Django models.Model abstracto base para heredar en los modelos.
+    """
+    # Nombre del campo a la que apunta la empresa. Si este campo no está 
+    # presente o depende de un campo relacionado, establezcalo en el modelo.
+    # Por ejemplo: el modelo Document no posee campo 'company', sino que posee 
+    # un campo relacionado 'doctype' el cual a su vez si posee uno 'company', 
+    # entonces en el modelo Document esta variable la establecemos así:
+    # COMPANY_FIELD_NAME = "doctype__company".
+    COMPANY_FIELD_NAME = "company"
+
+    list_display = [("__str__", _("nombre"))]
+
+    # Campo de la empresa a la que pertenecerá...
+    company = models.ForeignKey("company.Company", on_delete=models.CASCADE,
+    verbose_name=_l("Empresa"))
+
+    # Se utilizará como campo de búsqueda.
+    # Si no desea incluirlo en el modelo haga: tags = None en el modelo.
+    tags = models.CharField(max_length=700, blank=True, editable=False)
+
+    class Meta:
+        abstract = True
 
     def __str__(self):
         return getattr(self, "name", None) or getattr(self, "pk", "ModelBase")
 
-    def __getattribute__(self, name):
-        return super().__getattribute__(name)
+    @classmethod
+    def get_base_url_name(cls):
+        return ("%s-%s" % (cls._meta.app_label, cls._meta.model_name)).lower()
 
-    def print_title(self):
-        return str(self)
+    def get_reverse_kwargs(self, no_company=False):
+        if (self.COMPANY_FIELD_NAME) and (not no_company):
+            return {"company": self.get_company().pk, "pk": self.pk}
+        return {"pk": self.pk}
 
-    def save(self, *args, **kwargs):
-        """
-        Método 'save' de los modelos en Django.
-        """
-        save = super().save(*args, **kwargs)
-        return save
+    def reverse_lazy(self, url_name, **kwargs):
+        kw = kwargs or self.get_reverse_kwargs()
+        return reverse_lazy(url_name, kwargs=kw)
+
+    def get_detail_url(self):
+        return self.reverse_lazy("%s-detail" % self.get_base_url_name())
+
+    def get_update_url(self):
+        return self.reverse_lazy("%s-update" % self.get_base_url_name())
+
+    def get_delete_url(self):
+        return self.reverse_lazy("%s-delete" % self.get_base_url_name())
+
+    def get_list_url(self):
+        kwargs = self.get_reverse_kwargs()
+        try:
+            kwargs.pop("pk")
+        except (KeyError):
+            pass
+        return self.reverse_lazy("%s-list" % self.get_base_url_name(), **kwargs)
+
+    def get_create_url(self):
+        kwargs = self.get_reverse_kwargs()
+        try:
+            kwargs.pop("pk")
+        except (KeyError):
+            pass
+        return self.reverse_lazy("%s-create" % self.get_base_url_name(), **kwargs)
+
+    def get_absolute_url(self):
+        return self.get_detail_url() or self.get_update_url()
+
+    def get_company(self):
+        """Obtiene la empresa a la que pertenece este objeto."""
+        return self.getattr(self.COMPANY_FIELD_NAME)
+
+    def get_object_detail(self, exclude: list=[]):
+        """Obtiene un diccionario con informacion de los campos y sus valores."""
+        fields = self._meta.get_fields()
+        out = []
+        exclude = list(exclude) + ["id", "tags", "company_id"]
+        #raise TypeError("\n\n".join([str(field.__dict__) for field in fields]))
+        for field in fields:
+            try:
+                attname = field.attname
+            except (AttributeError):
+                continue
+            
+            if attname in exclude:
+                continue 
+        
+            value = getattr(self, attname)
+            display = value
+
+            if getattr(field, "related_model", None):
+                value = field.related_model.objects.get(id=value)
+            
+            try:
+                display = getattr(self, f"get_{attname}_display")()
+            except (AttributeError):
+                if isinstance(field, (models.DecimalField, models.IntegerField, 
+                    models.FloatField)):
+                    display = f"{value:,}"
+
+            out.append({"field": field, "value": value, "display": display})
+        return out
 
     def save_without_historical_record(self, *args, **kwargs):
         """
@@ -285,20 +241,15 @@ class ModelBase(text.Text):
         https://django-simple-history.readthedocs.io/en/latest/querying_history.html
         
         """
-        print(f"{self} | Guardando sin history_record")
         self.skip_history_when_saving = True
         try:
-            out = self.save(*args, **kwargs)
+            out = super().save(*args, **kwargs)
         finally:
-            del self.skip_history_when_saving
+            try:
+                del self.skip_history_when_saving
+            except (AttributeError):
+                pass
         return out
-
-    def clean(self, *args, **kwargs):
-        """
-        Método 'clean' de los modelos en Django.
-        """
-        clean = super().clean(*args, **kwargs)
-        return clean
 
     def getattr(self, name, default="__raise_exception__"):
         """
@@ -317,7 +268,12 @@ class ModelBase(text.Text):
             getattr(name)
         """
         # Lanzará excepción si no se encuentra el primer nombre.
-        # Pero para el resto, devolverá el valor del argumento 'default' si se indica.
+        # Pero para el resto, devolverá el valor del argumento 'default' 
+        # si se indica.
+
+        if name == "__str__":
+            return str(self)
+
         names = name.split("__")
         attr = self
         for n in names:
@@ -326,9 +282,64 @@ class ModelBase(text.Text):
             else:
                 if (default != "__raise_exception__"):
                     return default
+                na = [a for a in attr.__dict__.keys() if not a.startswith("__")]
                 raise AttributeError(
-                f"Error en {repr(self)} obteniendo el atributo '{name}'. {repr(attr)} no tiene un atributo llamado '{n}'.")
+                    f"Error en {repr(self)} obteniendo el atributo '{name}'. "
+                    f"{repr(attr)} no tiene un atributo llamado '{n}'. \n"
+                    f"{na}.")
         return attr
+
+    def get_list_display(self):
+        return [self.getattr(e[0]) for e in self.list_display]
+
+    def get_actions_links(self, size: str="1rem", fill: str=None, 
+        defaults: list=None) -> dict:
+        """Obtiene un diccionarios con las acciones para el objeto."""
+        if not defaults:
+            defaults = ["detail", "update", "delete"]
+
+        out = {}
+        for action in defaults:
+            act = self.get_action(action, size=size, fill=fill)
+            if act:
+                out[action] = act
+        return out
+
+    def get_action(self, action: str, size: str="1rem", fill: str=None) -> dict:
+        """Obtiene la acción crear."""
+
+        info = {
+            "create": {
+                "name": _("Nuevo"), 
+                "icon": icons.svg("plus-circle-fill", size=size, 
+                    fill=fill or "var(--bs-success)", on_error=icons.DEFAULT)}, 
+            "update": {
+                "name": _("Modificar"), 
+                "icon": icons.svg("pencil-fill", size=size, 
+                    fill=fill or "var(--bs-warning)", on_error=icons.DEFAULT)}, 
+            "delete": {
+                "name": _("Eliminar"), 
+                "icon": icons.svg("x-circle-fill", size=size, 
+                    fill=fill or "var(--bs-danger)", on_error=icons.DEFAULT)}, 
+            "list": {
+                "name": _("Lista"), 
+                "icon": icons.svg("card-list", size=size, 
+                    fill=fill or "var(--bs-dark)", on_error=icons.DEFAULT)}, 
+            "detail": {
+                "name": _("Detalle"), 
+                "icon": icons.svg("eye-fill", size=size, 
+                    fill=fill or "var(--bs-primary)", on_error=icons.DEFAULT)}, 
+        }
+
+        try:
+            url = str(getattr(self, f"get_{action}_url")())
+        except (NoReverseMatch):
+            return None
+
+        item = info[action]
+        item["url"] = url
+
+        return item
 
     def get_barcode(self, code=None, strtype="code128"):
         """
@@ -410,7 +421,12 @@ class ModelBase(text.Text):
         return self.ToDict(to_json=True)
 
     @classmethod
-    def get_img(self, default=""):
+    def get_img_without_default(cls):
+        """Igual que cls.get_img pero sin default atributo."""
+        return cls.get_img(default="")
+
+    @classmethod
+    def get_img(cls, default="/static/icons/file-text.svg"):
         """
         Trata de obtener la ruta de la imagen asignada a este objecto o modelo.
         De no encontrar una ruta de imagen, devolverá el valor del parámetro 
@@ -418,181 +434,13 @@ class ModelBase(text.Text):
         """
         # Buscamos una field (campo) de tipo image o file
         #  que se hay declarado con algunos de estos nombres.
-        field = getattr(self, "image", 
-                getattr(self, "img", 
-                getattr(self, "icon", 
-                getattr(self, "logo", 
-                getattr(self, "photo", object)))))
+        field = getattr(cls, "image", 
+                getattr(cls, "img", 
+                getattr(cls, "icon", 
+                getattr(cls, "logo", 
+                getattr(cls, "photo", object)))))
 
         return getattr(field, "url", "") or default
-
-    @classmethod
-    def GetFields(self, solo_editables=False):
-        """
-        Obtiene un listado con los campos del modelo.
-        """
-        out = self._meta.fields
-        if (solo_editables):
-            out = [f for f in out if f.editable]
-        return out
-
-    @classmethod
-    def GetFieldsEditables(self):
-        """
-        Obtiene un listado con los campos editables del modelo.
-        """
-        return self.GetFields(True)
-
-    @classmethod
-    def GetFieldsNames(self, solo_editables=False):
-        """
-        Obtiene un listado con los nombres de los campos
-        en el modelo.
-        """
-        return [f.name for f in self.GetFields(solo_editables=solo_editables)]
-
-    @classmethod
-    def GetFieldsNamesEditables(self):
-        """
-        Obtiene un listado con los modelos de los campos
-        editables del modelo.
-        """
-        return self.GetFieldsNames(True)
-
-    @classmethod
-    def GetFieldsNamesDisplay(self, solo_editables=False):
-        """
-        Obtiene un listado con los nombres de los campos
-        visibles tal como son mostrados al usuario.
-        """
-        return [f.verbose_name for f in self.GetFields(solo_editables=solo_editables)]
-
-    @classmethod
-    def GetFieldsNamesDisplayEditables(self):
-        """
-        Obtiene un listado con los nombres de los campos
-        editables del modelo, tal como son mostrados al usuario.
-        """
-        return self.GetFieldsNamesDisplay(True)
-
-    @classmethod
-    def GetFieldsForReport(self, json_clean=False, excludes=["tags", "password"],
-    include_parents=False, exclude_add_relations_model_fields=False):
-        """
-        Obtiene un diccionario con los nombres de los campos como
-        sus claves, y una lista con información sobre dicho campo
-        como el valor de cada item. Esta información será utlizada
-        por UNOLET para mostrar los campos en las listas de
-        objetos y en los reportes.
-
-        Podemos configurar esto en cada modelo, agregando este método.
-
-        De forma predeterminada, los campos a mostrar serían solo los
-        campos definidos en el modelo marcados como editables.
-
-        La mayoría de los campos del modelo user.User están excluidos por
-        motivo de seguridad.
-
-        Parameters:
-            json_clean (bool): Si es True, limpia los items que no sean json serializables.
-
-            excludes (list): Una lista de nombres de campos que desea excluir. De forma
-            predeterminada excluimos el campo 'tags'.
-
-            include_parents (bool): si es True, incluirá también los campos de sus relaciones.
-
-            exclude_add_relations_model_fields (bool): Si es True, no serán incluidos los
-            campos del modelo de las relaciones ForeignKey, etc. Esto es para evitar
-            una recursión, ya que se llama a este método para extraer dichos campos.
-
-        Returns:
-            dict: Un diccionario con cada field agregada.
-        """
-        if (not excludes):
-            excludes = []
-
-        out = report.Report()
-        fields = self.GetFields()
-
-        for field in fields:
-            # Algunos campos de algunos modelos no están incluidos
-            # por razones de seguridad. Un ejemplo de ello es el
-            # modelo usuario, cuyo único campo permitido es el
-            # nombre de usuario y el nombre real.
-            if ("user" in (self.__name__.lower(), self.__class__.__name__.lower())):
-                if (not field.name in ("username", "first_name", "last_name")):
-                    continue
-
-            # Fields que se excluirán.
-            if (field.name in excludes):
-                continue
-
-            item = report.Field({
-                "field": field, # Es posible agregar métodos del modelo en vez de campos.
-                "name": field.name,
-                "verbose_name": field.verbose_name,
-                "help_text": field.help_text,
-                "value": "",
-                "css_class": [], # Clases CSS que serán aplicadas al valor en la plantilla.
-                "template_filters": [], # filtros que serán aplicados al valor en la plantilla.
-                "data_type": var.STR,
-                "is_number": False,
-                "is_method": False, # Indica si apunta a un método del objeto.
-            })
-            if (isinstance(field, models.IntegerField)):
-                item["css_class"].append("text-right")
-                item["template_filters"].append("intcomma")
-                item["data_type"] = var.INT
-                item["is_number"] = True
-            elif (isinstance(field, models.FloatField)):
-                item["css_class"].append("text-right")
-                item["template_filters"].append("intcomma")
-                item["data_type"] = var.FLOAT
-                item["is_number"] = True
-            elif (isinstance(field, models.DecimalField)):
-                item["css_class"].append("text-right")
-                item["template_filters"].append("intcomma")
-                item["data_type"] = var.DECIMAL
-                item["is_number"] = True
-            elif (isinstance(field, models.DateField)):
-                item["data_type"] = var.DATE
-            elif (isinstance(field, models.DateTimeField)):
-                item["data_type"] = var.DATETIME
-            elif (isinstance(field, (models.CharField, models.TextField))):
-                item["template_filters"].append("text-truncate")
-                item["data_type"] = var.STR
-            elif (isinstance(field, models.AutoField)):
-                item["data_type"] = var.INT
-            elif (isinstance(field, models.ForeignKey)):
-                item["data_type"] = var.FOREIGN_KEY
-                item["model"] = field.related_model
-                item["model_name"] = item["model"]._meta.model_name
-                item["app_label"] = item["model"].__module__.split(".")[0] # app_label.models
-
-                if (include_parents):
-                    # Incluimos, junto a las demás fields, las fields de los modelos
-                    # relacionados con este, a travez de ForeignKey.
-                    # Estas fields tendrán una estructura de nombre: field__relactionfield.
-                    relations = item["model"].GetFieldsForReport(json_clean=json_clean,
-                        exclude_add_relations_model_fields=True, include_parents=False)
-                    for relitem in relations.values():
-                        relitem["name"] = f"{field.name}__{relitem['name']}" # field__relfield.
-                        relitem["verbose_name"] = f"{field.verbose_name} | {relitem['verbose_name']}" # Field | RelationField.
-                        out[relitem["name"]] = relitem
-
-                if (not exclude_add_relations_model_fields):
-                    if (hasattr(item["model"], "GetFieldsForReport")):
-                        item["fields"] = item["model"].GetFieldsForReport(
-                            json_clean=json_clean,
-                            exclude_add_relations_model_fields=True)
-
-            item["css_class_string"] = " ".join(item["css_class"])
-
-            if json_clean:
-                item = json.clean(item, remove=False)
-
-            out[field.name] = item
-        return out
 
     def get_history(self):
         """

@@ -49,7 +49,7 @@
 
 
 a.addlink555 {
-    background-color: var(--success) !important;
+    background-color: var(--bs-success) !important;
     color: var(--unolet-white) !important;
     padding: 10px;
 }

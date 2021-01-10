@@ -14,7 +14,7 @@ Group.add_to_class("site", models.ForeignKey(Site, on_delete=models.CASCADE,
     blank=True, null=True))
 
 
-class User(AbstractUser, utils.ModelBase):
+class User(AbstractUser):
     """
     Representa un usuario en la base de datos. 
     
@@ -160,6 +160,21 @@ class User(AbstractUser, utils.ModelBase):
     def get_companies(self):
         """Obtiene las empresas que este usuario tiene accesso."""
         return self.company_set.all() | self.admin_users_company_set.all()
+
+    def get_modules(self, parent=None, only_parent=True):
+        """Obtiene los módulos a los que este usuario puede acceder."""
+        from module.models import Module
+
+        qs = Module.objects.filter(parent=parent)
+
+        if bool(only_parent):
+            return qs 
+
+        for obj in qs:
+            qs = qs | self.get_modules(obj, only_parent=False)
+
+        return qs
+
 
 
 

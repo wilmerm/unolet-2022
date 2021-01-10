@@ -1,15 +1,17 @@
 import copy
+import timeit
 
-from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 
+from base.tests import BaseTestCase
 from company.tests.tests_models import get_or_create_company
 from document.tests.tests_models import get_or_create_document
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
 
 
-class ItemTest(TestCase):
+class ItemTest(BaseTestCase):
+
     def setUp(self):
         company = get_or_create_company()
         group = ItemGroup.objects.create(company=company, name="Group")
@@ -28,8 +30,86 @@ class ItemTest(TestCase):
     def test_codename_is_uppercase(self):
         self.assertEqual(self.item.codename, "ITEM")
 
+    def test_get_available_method(self):
+        # Simulamos crear un documento de entrada con un movimiento de 10.
+        input_document = copy.copy(get_or_create_document())
+        input_doctype = copy.copy(input_document.doctype)
+        input_doctype.pk = None
+        input_doctype.code = "test2"
+        input_doctype.inventory = input_doctype.INPUT # de tipo entrada.
+        input_doctype.save()
+        input_document.pk = None
+        input_document.doctype = input_doctype
+        input_document.save()
+        movement = Movement.objects.create(document=input_document, 
+            item=self.item, quantity=10, price=0, discount=0, tax=0)
+        self.assertEqual(
+            self.item.get_available(company=input_doctype.company), 10)
+        # Modificamos la cantidad del movimiento a 15
+        movement.quantity = 15
+        movement.save()
+        self.assertEqual(
+            self.item.get_available(company=input_doctype.company), 15)
+        # Añadimos otro movimiento diferente con el mismo artículo con cantidad 3
+        movement2 = copy.copy(movement)
+        movement.pk = None
+        movement.quantity = 3
+        movement.save()
+        self.assertEqual(
+            self.item.get_available(company=input_doctype.company), 18)
+        # Simulamos crear un documento de salida con un movimiento de 4
+        output_document = copy.copy(get_or_create_document())
+        output_doctype = copy.copy(output_document.doctype)
+        output_doctype.pk = None
+        output_doctype.code = "test3"
+        output_doctype.inventory = output_doctype.OUTPUT # de tipo salida.
+        output_doctype.save()
+        output_document.pk = None
+        output_document.doctype = output_doctype
+        output_document.save()
+        movement = Movement.objects.create(document=output_document, 
+            item=self.item, quantity=4, price=0, discount=0, tax=0)
+        self.assertEqual(
+            self.item.get_available(company=output_doctype.company), 14)
+        # Simulamos crear un documento que no afecta el inventario. la cantidad
+        # será de 34 pero el disponible deberá seguir en 14 como el anterior.
+        other_document = copy.copy(get_or_create_document())
+        other_doctype = copy.copy(other_document.doctype)
+        other_doctype.pk = None
+        other_doctype.code = "test4"
+        other_doctype.inventory = "" # No afecta el inventario.
+        other_doctype.save()
+        other_document.pk = None
+        other_document.doctype = other_doctype
+        other_document.save()
+        movement = Movement.objects.create(document=other_document, 
+            item=self.item, quantity=34, price=0, discount=0, tax=0)
+        self.assertEqual(
+            self.item.get_available(company=other_doctype.company), 14)
 
-class ItemGroupTest(TestCase):
+    def test_the_performance_of_the_get_available_method(self):
+        """Probamos el rendimiento del método get_available."""
+        document = copy.copy(get_or_create_document())
+        doctype = copy.copy(document.doctype)
+        doctype.pk = None
+        doctype.code = "test5"
+        doctype.inventory = doctype.INPUT # Entrada
+        doctype.save()
+        document.pk = None
+        document.doctype = doctype
+        document.save()
+        # Vamos a crear muchos movimimientos.
+        for n in range(10000):
+            movement = Movement(document=document, 
+                item=self.item, quantity=1, price=0, discount=0, tax=0)
+            movement.save(not_calculate_document=True)
+        # Ahora si, vamos a calcular los datos en el documento.
+        self.assertLess(timeit.timeit(document.calculate, number=1), 0.1)
+        # El método get_available en el movimiento depende del mismo en el item.
+        self.assertLess(timeit.timeit(movement.get_available, number=1), 0.1)
+
+        
+class ItemGroupTest(BaseTestCase):
     def setUp(self):
         company = get_or_create_company()
         self.group = ItemGroup.objects.create(company=company, name="Group")
@@ -38,7 +118,7 @@ class ItemGroupTest(TestCase):
         self.assertEqual(self.group.name, "GROUP")
         
 
-class ItemFamilyTest(TestCase):
+class ItemFamilyTest(BaseTestCase):
     def setUp(self):
         company = get_or_create_company()
         self.family = ItemFamily.objects.create(company=company, name="Family")
@@ -47,17 +127,16 @@ class ItemFamilyTest(TestCase):
         self.assertEqual(self.family.name, "FAMILY")
 
 
-class MovementTest(TestCase):
+class MovementTest(BaseTestCase):
     def setUp(self):
-        pass
         document = get_or_create_document()
-        item = Item.objects.create(company=document.doctype.company, name="item", 
-            codename="item")
+        item = Item.objects.create(company=document.doctype.company, 
+            name="item", codename="item")
 
         self.quantity = 2
         self.price = 100.50
         self.discount = 10
-        self.tax = 16
+        self.tax = 15
         self.movement = Movement(document=document, item=item, 
             quantity=self.quantity, price=self.price, discount=self.discount, 
             tax=self.tax)
@@ -75,12 +154,31 @@ class MovementTest(TestCase):
         self.assertEqual(movement2.number, 2)
 
     def test_get_amount_method(self):
-        amount = (self.quantity * self.price) - self.discount
+        amount = (self.quantity * self.price)
         self.assertEqual(amount, self.movement.get_amount())
+
+    def test_get_amount_with_discount_method(self):
+        amount = (self.quantity * self.price) - self.discount
+        self.assertEqual(amount, self.movement.get_amount_with_discount())
 
     def test_get_total_method(self):
         total = ((self.quantity * self.price) - self.discount) + self.tax
         self.assertEqual(total, self.movement.get_total())
+
+    def test_get_local_amount_method(self):
+        amount = (self.quantity * self.price)
+        local_amount = amount * self.movement.document.currency_rate
+        self.assertEqual(local_amount, self.movement.get_local_amount())
+
+    def text_get_local_amount_with_discount_method(self):
+        amount = (self.quantity * self.price) - self.discount
+        amount = amount * self.movement.document.currency_rate
+        self.assertEqual(amount, self.movement.get_local_amount_with_discount())
+
+    def test_get_local_total_method(self):
+        total = ((self.quantity * self.price) - self.discount) + self.tax
+        local_total = total * self.movement.document.currency_rate
+        self.assertEqual(local_total, self.movement.get_local_total())
 
 
     

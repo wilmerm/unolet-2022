@@ -54,9 +54,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 :root {
     --unolet-white: #ffffff;
-    --unolet-black: #454545;
+    --unolet-black: #343a40;
     --unolet-gray: #757575;
-    --unolet-red: #ff0000;
+    --unolet-red: #dc3545;
     --light2: rgb(238, 239, 240);
 }
 
@@ -113,6 +113,7 @@ fieldset {
 /*
 Botones con imágenes.
 */
+
 .btn img {
     width: auto;
     height: 20px;
@@ -132,6 +133,73 @@ Botones con imágenes.
 .btn-white:hover {
     background-color: #eee;
 }
+
+.btn-outline-primary svg {
+    fill: var(--bs-primary);
+}
+
+.btn-outline-secondary svg {
+    fill: var(--bs-secondary);
+}
+
+.btn-outline-info svg {
+    fill: var(--bs-info);
+}
+
+.btn-outline-danger svg {
+    fill: var(--bs-danger);
+}
+
+.btn-outline-warning svg {
+    fill: var(--bs-warning);
+}
+
+.btn-outline-success svg {
+    fill: var(--bs-success);
+}
+
+.btn-outline-dark svg {
+    fill: var(--bs-dark);
+}
+
+.btn-outline-light svg {
+    fill: var(--bs-light);
+}
+
+
+.btn-outline-primary:hover svg {
+    fill: var(--bs-white);
+}
+
+.btn-outline-secondary:hover svg {
+    fill: var(--bs-white);
+}
+
+.btn-outline-info:hover svg {
+    fill: var(--bs-dark);
+}
+
+.btn-outline-danger:hover svg {
+    fill: var(--bs-white);
+}
+
+.btn-outline-warning:hover svg {
+    fill: var(--bs-dark);
+}
+
+.btn-outline-success:hover svg {
+    fill: var(--bs-white);
+}
+
+.btn-outline-dark:hover svg {
+    fill: var(--bs-white);
+}
+
+.btn-outline-light:hover svg {
+    fill: var(--bs-dark);
+}
+
+
 
 
 /*
@@ -1108,24 +1176,49 @@ h1, .h1 {
     font-size: 1.4rem;
 }
 
+h1 img, .h1 img, h1 svg, .h1 svg {
+    width: 1.4rem;
+    height: 1.4rem;
+}
+
 h2, .h2 {
     font-size: 1.3rem;
+}
+h2 img, .h2 img, h2 svg, .h2 svg {
+    width: 1.3rem;
+    height: 1.3rem;
 }
 
 h3, .h3 {
     font-size: 1.2rem;
 }
+h3 img, .h3 img, h3 svg, .h3 svg {
+    width: 1.2rem;
+    height: 1.2rem;
+}
 
 h4, .h4 {
     font-size: 1.1rem;
+}
+h4 img, .h4 img, h4 svg, .h4 svg {
+    width: 1.1rem;
+    height: 1.1rem;
 }
 
 h5, .h5 {
     font-size: 1rem;
 }
+h5 img, .h5 img, h5 svg, .h5 svg {
+    width: 1rem;
+    height: 1rem;
+}
 
 h6, .h6 {
     font-size: 0.9rem;
+}
+h6 img, .h6 img, h6 svg, .h6 svg {
+    width: 0.9rem;
+    height: 0.9rem;
 }
 
 
@@ -1228,8 +1321,9 @@ element.style {
 
 
 
-
-
+.menu li:hover ul {
+    display: block !important;
+}
 
 
 

@@ -1,0 +1,82 @@
+{% if user.is_superuser %}
+<!-- show_admin_data -->
+<div class="container-fluid p-4 bg-warning">
+  <h2>Desarrollo</h2>
+  <small>Esto se muestra porque DEBUG = True</small>
+  <hr>
+  <div class="row">
+      <div class="col col-12 col-md-4 bg-light border">
+      <h3>context</h3>
+      {% dict_to_ul context_dict %}
+      <hr>
+      <h3>view_dict</h3>
+      {% dict_to_ul view_dict %}
+      <hr>
+      <h3>view_class_dict</h3>
+      {% dict_to_ul view_class_dict %}
+      <hr>
+      <b>user_company_permissions: </b>
+          <ul>
+              {% for obj in user_company_permissions %}
+              <li class="{% if obj.codename == view.company_permission_required or obj.codename in view.company_permission_required %}text-success{% endif %}">
+              {{ obj.codename }} | {{ obj.name }}
+              </li>
+              {% endfor %}
+          </ul>
+          <b>user_company_groups: </b>
+          <ul>
+              {% for obj in user_company_groups %}
+              <li>{{ obj.codename }} | {{ obj.name }}</li>
+              {% endfor %}
+          </ul>
+      </div>
+      <div class="col col-12 col-md-8 bg-light border">
+      <h3>request</h3>
+      {% dict_to_ul request_dict %}
+      </div>
+  </div>
+  <div class="row">
+      <div class="col col-12 col-md-6">
+      <div><b>user: </b>{{ user }} {% if user.is_superuser %}<span class="text-danger">(superuser)</span>{% endif %}</div>
+      <div><b>company: </b>{{ company }}</div>
+      <div><b>request.company: </b>{{ request.company }}</div>
+      <div><b>object.company: </b>{{ object.company }}</div>
+      <div><b>object: </b>{{ object }}</div>
+      <div><b>form.instance </b>{{ form.instance }}</div>
+      <div><b>model: </b>{{ model }}</div>
+      <div><b>request.current_app: </b>{{ request.current_app }}</div>
+      <div><b>request.resolver_match: </b>{{ request.resolver_match }}</div>
+      <div><b>request.resolver_match.args: </b>{{ request.resolver_match.args }}</div>
+      <div><b>request.resolver_match.kwargs: </b>{{ request.resolver_match.kwargs }}</div>
+      <div><b>request.resolver_match.url_name: </b>{{ request.resolver_match.url_name }}</div>
+      <div><b>request.resolver_match.route: </b>{{ request.resolver_match.route }}</div>
+      <div><b>view: </b>{{ view }}</div>
+      <div><b>view_doc: </b>{{ view_doc }}</div>
+      <div><b>view_module: </b>{{ view_module }}</div>
+      <div><b>view.company_permission_required: </b>{{ view.company_permission_required }}</div>
+      <div class="row">
+          <div class="col col-12 col-md-6 border border-warning">
+          <b>user_company_permissions: </b>
+          <ul>
+              {% for obj in user_company_permissions %}
+              <li class="{% if obj.codename == view.company_permission_required or obj.codename in view.company_permission_required %}text-success{% endif %}">
+              {{ obj.codename }} | {{ obj.name }}
+              </li>
+              {% endfor %}
+          </ul>
+          <b>user_company_groups: </b>
+          <ul>
+              {% for obj in user_company_groups %}
+              <li>{{ obj.codename }} | {{ obj.name }}</li>
+              {% endfor %}
+          </ul>
+          </div>
+      </div>
+      </div>
+      <div class="col col-12 col-md-6">
+      
+      </div>
+  </div>
+</div>
+<hr>
+{% endif %}

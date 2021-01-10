@@ -1,10 +1,11 @@
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 from user.models import User
-from document.views import (DocumentUpdateView)
+from document.models import Document
 from user.tests.tests_models import get_or_create_user
 from document.tests.tests_models import get_or_create_document
+from warehouse.tests.tests_models import get_or_create_warehouse
 
 
 class DocumentUpdateViewTest(TestCase):
@@ -83,9 +84,15 @@ class DocumentUpdateViewTest(TestCase):
 
     def test_post_save_is_ok(self):
         document = get_or_create_document()
+        document.doctype.company.users.add(get_or_create_user())
         self.client.login(username="test", password="test")
-        response = self.client.post(document.get_absolute_url())
 
+        response = self.client.post(
+            reverse("document-document-create", 
+            kwargs={"company": document.doctype.company.id}),
+            data={"warehouse": document.warehouse.pk, 
+                "doctype": document.doctype.pk,
+                "note": "test_doc_1"})
         self.assertEqual(response.status_code, 200)
 
 

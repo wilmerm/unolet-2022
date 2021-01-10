@@ -3,7 +3,6 @@ from django.views.generic import (DetailView, UpdateView)
 from django.contrib.auth.mixins import (LoginRequiredMixin, 
     PermissionRequiredMixin)
 
-from unoletutils.libs.utils import view_decorator
 from .models import Company
 
 

@@ -1,0 +1,41 @@
+{% load humanize %}
+{% load i18n %}
+{% load bootstrap4 %}
+{% if page_obj %}
+
+<style>
+    #pagination-list .pagination {
+        margin-bottom: 0px;
+    }
+</style>
+
+<div class="container-fluid p-1 mb-2 bg-light border" id="pagination-list">
+    <div class="row p-0">
+        <div class="col col-12 col-sm-6 col-md-7 col-lg-9">
+            {% bootstrap_pagination page_obj size=size %}
+        </div>
+        <div class="col col-6 col-sm-2 col-md-2 col-lg-1 pr-0">
+            <select name="" id="id_paginate_by_select" class="form-control form-control-sm float-left w-100">
+                <option value="20">20</option>
+                <option value="40">40</option>
+                <option value="60">60</option>
+                <option value="80">80</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+        <div class="col col-6 col-sm-4 col-md-3 col-lg-2 pl-0">
+            <input type="text" value="{{ page_obj.paginator.count|intcomma }} registros en total." class="form-control form-control-sm bg-transparent border-0 float-left w-100" readonly>
+        </div>
+    </div>
+</div>
+
+<script>
+    const paginate_by = parseInt("{{ page_obj.paginator.per_page }}");
+    const select = document.getElementById("id_paginate_by_select");
+    select.value = paginate_by;
+
+    select.onchange = function () {
+        window.location.href = "{{ request.path|safe }}?{{ request.META.QUERY_STRING|safe }}&paginate_by=" + select.value;
+    }
+</script>
+{% endif %}

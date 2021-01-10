@@ -1,0 +1,56 @@
+{% extends 'base/base.html' %}
+{% load bootstrap4 %}
+{% load i18n %}
+{% load humanize %}
+{% load base %}
+
+
+{% block subtitle %}
+    {{ object_list|verbose_name_plural|title }}
+{% endblock %}
+
+{% block actions %}
+    {% create_button request model=object_list.model size="1.5rem" %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered table-resize">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-truncate" style="width: 2rem"><input type="checkbox" name="" id="check-item-all"></th>
+                    <th class="text-truncate" style="width: 2rem;"></th>
+                    {% for name, verbose_name in view.get_list_display %}
+                        <th class="text-truncate">{{ verbose_name.title }}</th>
+                    {% endfor %}
+                    <th class="text-truncate" style="width: 6rem">{% trans 'Acciones' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj_cap in view.object_list %}
+                <tr>
+                    <td class="text-center text-truncate"><input type="checkbox" name="" id="check-item-{{ obj.id }}"></td>
+                    <td class="text-center text-truncate">
+                        <a href="{{ obj.get_absolute_url }}">
+                            <img src="{{ obj.get_img }}" alt="" style="width: 1rem; height: auto; margin-right: 0.5rem;">
+                        </a>
+                    </td>
+                        {% for attname, item in obj_cap.get_values.items %}
+                            {% if forloop.counter == 1 %}
+                                <td class="text-truncate {{ item.cssclass }}">
+                                    <a href="{{ obj_cap.get_absolute_url }}">{{ item.value|to_html }}</a>
+                                </td>
+                            {% else %}
+                                <td class="text-truncate {{ item.cssclass }}">{{ item.value|to_html }}</td>
+                            {% endif %}
+                        {% endfor %}
+                    <td class="text-center text-truncate">{% list_action_links_for_object obj_cap size="1rem" %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% pagination page_obj request %}
+</div>
+{% endblock content %}

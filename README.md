@@ -8,7 +8,6 @@ Wilmer Martinez <wilmermorelmartinez@gmail.com>
 ## Dependencias
 * pillow
 * django-unoletutils
-* django-guardian https://django-guardian.readthedocs.io/en/stable/installation.html
 * django-simple-history https://django-simple-history.readthedocs.io/
 * django-bootstrap4
 

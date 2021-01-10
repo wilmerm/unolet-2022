@@ -1,0 +1,9 @@
+<div>
+  {% for name, action in action_links.items %}
+    {% if action %}
+      <a class="opacity-7-hover" href="{{ action.url }}" style="margin: 0 0.2rem" title="{{ action.name }}">
+        {{ action.icon.svg|safe }}
+      </a>
+    {% endif %}
+  {% endfor %}
+</div>

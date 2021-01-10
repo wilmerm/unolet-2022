@@ -1,21 +1,44 @@
 from django.shortcuts import render
-from django.views.generic import (DetailView, CreateView, UpdateView, ListView)
+from django.utils.translation import gettext as _
+from django.views import generic
 
-from unoletutils.libs.utils import view_decorator
+from unoletutils.views import (ListView, DetailView, UpdateView, CreateView, 
+    DeleteView, TemplateView)
 from .models import (Item, ItemFamily, ItemGroup, Movement)
 from .forms import (ItemForm)
 
 
-@view_decorator()
+class Index(TemplateView):
+    """Página principal de la app inventario."""
+    template_name = "inventory/index.html"
+
+
 class ItemCreateView(CreateView):
-    """Vista para la creaciónd e artículos."""
+    """Vista para la creación e artículos."""
     model = Item
     form_class = ItemForm
 
 
-@view_decorator()
 class ItemUpdateView(UpdateView):
     """Vista para la modificación de artículos."""
     model = Item
     form_class = ItemForm
+    
+
+class ItemListView(ListView):
+    """Listado de artículos."""
+    model = Item
+    list_display = (
+        ("codename", _("Referencia")),
+        ("code", _("Código")),
+        ("name", _("Nombre")),
+        ("description", _("Descripción")),
+        ("group", _("Grupo")),
+        ("family", _("Familia")),
+        ("get_available", _("Disponible")),
+    )
+
+    list_display_cssclass = {
+        "get_available": "text-end",
+    }
     

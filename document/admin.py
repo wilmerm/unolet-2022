@@ -5,7 +5,7 @@ from .models import (DocumentType, Document)
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    pass 
+    readonly_fields = ("amount", "discount", "tax", "total")
 
 
 @admin.register(DocumentType)

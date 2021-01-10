@@ -1,0 +1,7 @@
+{% load base %}
+{% load i18n %}
+
+{% if url %}
+<!-- show_create_button -->
+<a href="{{ url }}" title="{% trans 'Nuevo' %}">{% svg 'plus-circle-fill' fill='var(--bs-success)' size=size %}</a>
+{% endif %}

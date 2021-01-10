@@ -8,23 +8,7 @@ dicha empresa, donde se muestran los distintos accesos a los diferentes módulos
 
 
 {% block content %}
-<div class="container">
-    <h1 class="display-2 text-center"></h1>
-    <div class="row">
-        {% for app in apps %}
-            <div class="col col-12 col-sm-6 col-md-4 col-lg-3 card text-center shadow-sm m-1" style="width: 18rem;">
-                <div class="card-img-top p-3">{% svg app.icon_name size="100%" fill="var(--dark)" %}</div>
-                <div class="card-body">
-                    <h2 class="card-title">{{ app.name }}</h2>
-                    <p class="card-text"></p>
-                    {% for model in app.models %}
-                    <a href="{{ model.get_url }}" class="btn btn-block btn-dark">{{ model.verbose_name_plural.title }}</a>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endfor %}
-    </div>
-</div>
+    {% modules request %}
 {% endblock content %}
 
 

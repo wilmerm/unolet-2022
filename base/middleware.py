@@ -20,6 +20,15 @@ def get_or_add_company_to_request(request, view_kwargs=None):
     return request.company
 
 
+class SetCreateUserFieldMiddleware(MiddlewareMixin):
+    """
+    Si se está creando un nuevo objeto y dicha instancia contiene un campo 
+    llamado 'create_user', intentamos establecer el usuario actual a ese campo.
+    """
+    # "EN DESARROLLO..."
+
+
+
 class CheckUserInCompanyMiddleware(MiddlewareMixin):
     """
     Middleawre que comprueba si el usuario logueado pertenece a la empresa
