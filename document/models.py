@@ -52,11 +52,11 @@ class DocumentType(utils.ModelBase):
         (ACCOUNTING_EXPENSE, _l("Gasto contable")),
     )
 
-    INPUT, OUTPUT = "+", "-"
-    INVENTORY_CHOICES = (
-        (INPUT, _l("Entrada")),
-        (OUTPUT, _l("Salida")),
-    )
+    # INPUT, OUTPUT = "+", "-"
+    # INVENTORY_CHOICES = (
+    #     (INPUT, _l("Entrada")),
+    #     (OUTPUT, _l("Salida")),
+    # )
 
     CREDIT, DEBIT = "+", "-"
     ACCOUNT_CHOICES = (
@@ -204,6 +204,9 @@ class Document(utils.ModelBase):
     on_delete=models.PROTECT, editable=False, blank=True, null=True,
     verbose_name=_("Número de comprobante fiscal"))
 
+    pay_taxes = models.BooleanField(_l("Paga impuestos"), default=True, 
+    help_text=_l("Determina si este documento paga impuestos."))
+
     # Campos para consultas.
 
     amount = models.DecimalField(_l("importe"), max_digits=32, decimal_places=2,
@@ -298,14 +301,16 @@ class Document(utils.ModelBase):
         Calcula los totales, actualiza los campos correspondientes y retorna 
         un diccionario con los resultados.
         """
-        movements = self.movement_set.all()
+        qs = self.movement_set.all()
         out = {"amount": 0, "discount": 0, "tax": 0, "total": 0, 
-            "movements": movements, "updated": False}
-        out["amount"] = movements.aggregate(s=Sum(F("quantity") * F("price")))["s"]
-        out["discount"] = movements.aggregate(s=Sum("discount"))["s"]
-        out["tax"] = movements.aggregate(s=Sum("tax"))["s"]
-        out["total"] = movements.aggregate(s=Sum(
-            ((F("quantity") * F("price")) - F("discount")) + F("tax") ))["s"]
+            "movements": qs, "updated": False}
+
+        if qs:
+            out["amount"] = qs.aggregate(s=Sum(F("quantity") * F("price")))["s"]
+            out["discount"] = qs.aggregate(s=Sum("discount"))["s"]
+            out["tax"] = qs.aggregate(s=Sum("tax"))["s"]
+            out["total"] = qs.aggregate(s=Sum(
+                ((F("quantity") * F("price")) - F("discount")) + F("tax") ))["s"]
 
         # Actualizamos los campos si exiten diferencias.
         if ((out["amount"] != self.amount) or (out["discount"] != self.discount)

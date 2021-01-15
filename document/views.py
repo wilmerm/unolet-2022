@@ -9,7 +9,9 @@ from unoletutils.libs import text
 from unoletutils.views import (UpdateView, CreateView, ListView, DetailView, 
     DeleteView, TemplateView)
 from document.models import (Document, DocumentType)
-from document.forms import (DocumentForm, DocumentPurchaseForm)
+from document.forms import (DocumentForm, DocumentPurchaseForm, 
+    DocumentInvoiceForm, DocumentInventoryInputForm, 
+    DocumentInventoryOutputForm)
 
 
 class Index(TemplateView):

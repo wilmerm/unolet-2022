@@ -95,6 +95,9 @@ class Item(utils.ModelBase):
     blank=True, verbose_name=_l("familia"),
     help_text=_l("Puede ser la marca del fabricante."))
 
+    tax = models.ForeignKey("finance.Tax", on_delete=models.SET_NULL,
+    blank=True, null=True)
+
     class Meta:
         verbose_name = _l("artículo")
         verbose_name_plural = _l("artículos")
@@ -138,9 +141,12 @@ class Item(utils.ModelBase):
         """Obtiene la cantidad disponible global de este artículo."""
         from document.models import Document
         
-        inputs = Movement.input_objects.filter(item=self)
-        outputs = Movement.output_objects.filter(item=self)
-        trans = Movement.transfer_objects.filter(item=self)
+        inputs = Movement.input_objects.filter(item=self, 
+            document__doctype__company=self.company)
+        outputs = Movement.output_objects.filter(item=self, 
+            document__doctype__company=self.company)
+        trans = Movement.transfer_objects.filter(item=self, 
+            document__doctype__company=self.company)
 
         if warehouse != None:
             inputs = inputs.filter(document__warehouse=warehouse)
@@ -209,7 +215,7 @@ class Movement(utils.ModelBase):
     decimal_places=2, validators=[MinValueValidator(0)])
 
     tax = models.DecimalField(_l("impuesto"), max_digits=22, decimal_places=2,
-    validators=[MinValueValidator(0)])
+    blank=True, default=0, validators=[MinValueValidator(0)])
 
     objects = models.Manager()
 
@@ -241,11 +247,14 @@ class Movement(utils.ModelBase):
         """
         Guarda el movimiento. 
 
-        Hay un parametro opcional:
+        Hay un parámetro opcional:
             not_calculate_document (bool): Determina si se calculará o no los 
             campos en el documento para actualizar sus campos con 
             document.calculate()
         """
+        # Establecemos el impuesto a self.tax
+        self.calculate_tax()
+
         # Este parámetro determinará si se ejecutará self.document.calculate()
         # Es útil cuando intentamos guardar muchos movimiento a la vez, ya que 
         # en el mismo método calculate del documento se recorrerán cada uno de
@@ -272,16 +281,25 @@ class Movement(utils.ModelBase):
 
         return out
 
+    def calculate_tax(self):
+        """Calcula el impuesto según el artículo y el documento."""
+        if self.document.pay_taxes and self.item.tax:
+            self.tax = self.item.tax.calculate(self.get_amount_with_discount())
+        else:
+            self.tax = 0
+
+        return self.tax
+
     def get_amount(self):
         """Obtiene el importe (cantidad x precio)."""
         return (self.price * self.quantity)
 
     def get_amount_with_discount(self):
-        """Obtiene el importe ((cantidad x precio) - descuento)."""
+        """Obtiene el importe ((cantidad * precio) - descuento)."""
         return (self.price * self.quantity) - self.discount
 
     def get_total(self):
-        """Obtiene el total ((cantidad x precio) - descuento) + impuesto."""
+        """Obtiene el total ((cantidad * precio) - descuento) + impuesto."""
         return self.get_amount_with_discount() + self.tax
 
     def get_local_amount(self):

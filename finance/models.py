@@ -1,3 +1,5 @@
+from decimal import Decimal, DecimalException
+
 from django.db import models, IntegrityError
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -60,6 +62,46 @@ class Currency(utils.ModelBase):
         """Obtiene la moneda predeterminada del sistema para la empresa."""
         qs = Currency.objects.filter(is_default=True, company=self.company)
         return qs.last()
+
+
+class Tax(utils.ModelBase):
+    """
+    Configura un tipo de impuesto.
+    """
+
+    PERCENT, FIXED = "percent", "fixed"
+    VALUE_TYPE_CHOICES = (
+        (PERCENT, _l("Porcentaje")),
+        (FIXED, _l("Fijo")),
+    )
+
+    codename = models.CharField(_l("referencia"), max_length=50)
+    
+    name = models.CharField(_l("nombre"), max_length=100)
+
+    value = models.DecimalField(_l("valor"), max_digits=22, decimal_places=2)
+
+    value_type = models.CharField(_l("tipo de valor"), max_length=10, 
+    choices=VALUE_TYPE_CHOICES, default=PERCENT)
+
+    class Meta:
+        verbose_name = _l("impuesto")
+        verbose_name_plural = _l("impuestos")
+        constraints = [
+            models.UniqueConstraint(fields=["company", "codename"], 
+                name="unique_tax_codename")
+        ]
+    
+    def __str__(self):
+        return self.codename
+
+    def calculate(self, value: Decimal=0) -> Decimal:
+        """Obtiene el valor del impuesto según el tipo de valor configurado."""
+        if self.value_type == self.PERCENT:
+            return (value / 100) * self.value
+        return self.value 
+
+
 
 
 class TaxReceipt(utils.ModelBase):

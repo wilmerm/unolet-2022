@@ -8,6 +8,7 @@ from base.tests import BaseTestCase
 from company.tests.tests_models import get_or_create_company
 from document.tests.tests_models import get_or_create_document
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
+from finance.models import Tax
 
 
 class ItemTest(BaseTestCase):
@@ -36,13 +37,14 @@ class ItemTest(BaseTestCase):
         input_doctype = copy.copy(input_document.doctype)
         input_doctype.pk = None
         input_doctype.code = "test2"
-        input_doctype.inventory = input_doctype.INPUT # de tipo entrada.
+        input_doctype.generic_type = input_doctype.INVENTORY_INPUT # tipo entrada.
         input_doctype.save()
         input_document.pk = None
         input_document.doctype = input_doctype
         input_document.save()
         movement = Movement.objects.create(document=input_document, 
             item=self.item, quantity=10, price=0, discount=0, tax=0)
+
         self.assertEqual(self.item.get_available(input_document.warehouse), 10)
         # Modificamos la cantidad del movimiento a 15
         movement.quantity = 15
@@ -61,7 +63,7 @@ class ItemTest(BaseTestCase):
         output_doctype = copy.copy(output_document.doctype)
         output_doctype.pk = None
         output_doctype.code = "test3"
-        output_doctype.inventory = output_doctype.OUTPUT # de tipo salida.
+        output_doctype.generic_type = output_doctype.INVENTORY_OUTPUT # de tipo salida.
         output_doctype.save()
         output_document.pk = None
         output_document.doctype = output_doctype
@@ -76,7 +78,7 @@ class ItemTest(BaseTestCase):
         other_doctype = copy.copy(other_document.doctype)
         other_doctype.pk = None
         other_doctype.code = "test4"
-        other_doctype.inventory = "" # No afecta el inventario.
+        other_doctype.generic_type = other_doctype.PURCHASE_ORDER # No afecta el inventario.
         other_doctype.save()
         other_document.pk = None
         other_document.doctype = other_doctype
@@ -115,7 +117,7 @@ class ItemTest(BaseTestCase):
         doctype = copy.copy(document.doctype)
         doctype.pk = None
         doctype.code = "test5"
-        doctype.inventory = doctype.INPUT # Entrada
+        doctype.generic_type = doctype.PURCHASE # Afecta el inv. como entrada.
         doctype.save()
         document.pk = None
         document.doctype = doctype
@@ -126,7 +128,7 @@ class ItemTest(BaseTestCase):
                 item=self.item, quantity=1, price=0, discount=0, tax=0)
             movement.save(not_calculate_document=True)
         # Ahora si, vamos a calcular los datos en el documento.
-        self.assertLess(timeit.timeit(document.calculate, number=1), 0.1)
+        self.assertLess(timeit.timeit(document.calculate, number=1), 0.5)
         # El método get_available en el movimiento depende del mismo en el item.
         self.assertLess(timeit.timeit(movement.get_available, number=1), 0.1)
 
@@ -158,10 +160,8 @@ class MovementTest(BaseTestCase):
         self.quantity = 2
         self.price = 100.50
         self.discount = 10
-        self.tax = 15
         self.movement = Movement(document=document, item=item, 
-            quantity=self.quantity, price=self.price, discount=self.discount, 
-            tax=self.tax)
+            quantity=self.quantity, price=self.price, discount=self.discount)
         self.movement.clean()
         self.movement.save()
 
@@ -184,8 +184,16 @@ class MovementTest(BaseTestCase):
         self.assertEqual(amount, self.movement.get_amount_with_discount())
 
     def test_get_total_method(self):
-        total = ((self.quantity * self.price) - self.discount) + self.tax
+        total = ((self.quantity * self.price) - self.discount) + 0
         self.assertEqual(total, self.movement.get_total())
+        # Añadimos un impuesto al articulo.
+        tax = Tax.objects.create(company=self.movement.document.doctype.company, 
+            name="test", codename="test", value=18, value_type=Tax.PERCENT)
+        self.movement.item.tax = tax
+        self.movement.save()
+        total = total + tax.calculate(total)
+        self.assertEqual(total, self.movement.get_total())
+        
 
     def test_get_local_amount_method(self):
         amount = (self.quantity * self.price)
@@ -198,7 +206,7 @@ class MovementTest(BaseTestCase):
         self.assertEqual(amount, self.movement.get_local_amount_with_discount())
 
     def test_get_local_total_method(self):
-        total = ((self.quantity * self.price) - self.discount) + self.tax
+        total = ((self.quantity * self.price) - self.discount) + self.movement.tax
         local_total = total * self.movement.document.currency_rate
         self.assertEqual(local_total, self.movement.get_local_total())
 

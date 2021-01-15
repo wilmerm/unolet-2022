@@ -11,10 +11,8 @@ from warehouse.tests.tests_models import get_or_create_warehouse
 class DocumentUpdateViewTest(TestCase):
     """Prueba para la vista DocumentUpdateView."""
 
-    url_name = "document-document-update"
-
     def setUp(self):
-        pass
+        self.url_name = "document-document-{generictype}-update"
         
     def test_get_absolute_url(self):
         """
@@ -23,8 +21,11 @@ class DocumentUpdateViewTest(TestCase):
         que pertence el documento.
         """
         document = get_or_create_document()
-        url = reverse(self.url_name, 
+
+        url = reverse(
+            self.url_name.format(generictype=document.doctype.generic_type),
             kwargs={"company": document.doctype.company.id, "pk": document.pk})
+
         self.assertEqual(url, document.get_absolute_url())
 
     def test_url_company_not_is_document_company(self):
@@ -47,7 +48,8 @@ class DocumentUpdateViewTest(TestCase):
         company_2.clean()
         company_2.save()
         # Esta url no será válida porque el documento no pertenece a esa empresa.
-        url = reverse(self.url_name, 
+        url = reverse(
+            self.url_name.format(generictype=document.doctype.generic_type), 
             kwargs={"company": company_2.pk, "pk": document.pk})
 
         self.client.login(username="test", password="test")
@@ -61,7 +63,9 @@ class DocumentUpdateViewTest(TestCase):
         """
         document = get_or_create_document()
         # No exite una empresa con pk = 999
-        url = reverse(self.url_name, kwargs={"company": 999, "pk": document.pk})
+        url = reverse(
+            self.url_name.format(generictype=document.doctype.generic_type), 
+            kwargs={"company": 999, "pk": document.pk})
 
         self.client.login(username="test", password="test")
         response = self.client.get(url)
@@ -74,7 +78,8 @@ class DocumentUpdateViewTest(TestCase):
         company = document.doctype.company
         company.is_active = False
         company.save()
-        url = reverse(self.url_name, 
+        url = reverse(
+            self.url_name.format(generictype=document.doctype.generic_type), 
             kwargs={"company": company.pk, "pk": document.pk})
         
         self.client.login(username="test", password="test")
@@ -88,7 +93,7 @@ class DocumentUpdateViewTest(TestCase):
         self.client.login(username="test", password="test")
 
         response = self.client.post(
-            reverse("document-document-create", 
+            reverse(f"document-document-{document.doctype.generic_type}-create", 
             kwargs={"company": document.doctype.company.id}),
             data={"warehouse": document.warehouse.pk, 
                 "doctype": document.doctype.pk,
