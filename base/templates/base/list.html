@@ -1,13 +1,10 @@
 {% extends 'base/base.html' %}
-{% load bootstrap4 %}
+{% load bootstrap5 %}
 {% load i18n %}
+{% load l10n %}
 {% load humanize %}
 {% load base %}
 
-
-{% block subtitle %}
-    {{ object_list|verbose_name_plural|title }}
-{% endblock %}
 
 {% block actions %}
     {% create_button request model=object_list.model size="1.5rem" %}
@@ -22,7 +19,7 @@
                     <th class="text-truncate" style="width: 2rem"><input type="checkbox" name="" id="check-item-all"></th>
                     <th class="text-truncate" style="width: 2rem;"></th>
                     {% for name, verbose_name in view.get_list_display %}
-                        <th class="text-truncate">{{ verbose_name.title }}</th>
+                        <th class="text-truncate">{{ verbose_name.capitalize }}</th>
                     {% endfor %}
                     <th class="text-truncate" style="width: 6rem">{% trans 'Acciones' %}</th>
                 </tr>
@@ -37,7 +34,7 @@
                         </a>
                     </td>
                         {% for attname, item in obj_cap.get_values.items %}
-                            {% if forloop.counter == 1 %}
+                            {% if attname in view.list_display_links %}
                                 <td class="text-truncate {{ item.cssclass }}">
                                     <a href="{{ obj_cap.get_absolute_url }}">{{ item.value|to_html }}</a>
                                 </td>

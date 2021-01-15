@@ -3,13 +3,6 @@
 {% load base %}
 
 
-{% block subtitle %}
-    {% if object.pk %}
-        <img src="{{ object.get_img }}" alt="">
-        {{ object }}{% else %}{% trans 'Nuevo registro' %}
-    {% endif %}
-{% endblock %}
-
 {% block actions %}
     {% list_action_links_for_object request object defaults="create list update delete" %}
 {% endblock %}

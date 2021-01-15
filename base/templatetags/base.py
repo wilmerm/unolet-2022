@@ -48,6 +48,18 @@ def verbose_name_plural(obj):
                 pass
     return ""
 
+
+@register.simple_tag
+def angular(value: str) -> str:
+    """Encierra el valor en doble llaves 'value' -> '{{ value }}'."""
+    return "{{ %s }}" % value
+
+
+@register.filter
+def angular(value: str) -> str:
+    """Encierra el valor en doble llaves 'value' -> '{{ value }}'."""
+    return "{{ %s }}" % value
+
     
 @register.inclusion_tag("tags/icon.svg")
 def svg(*args, **kwargs):

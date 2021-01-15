@@ -8,9 +8,9 @@ las ditintas empresas que pertenecen al site actual.
 
 {% block navbar %}{% endblock %}
 
-{% block content %}
-<div class="container">
-    <h1 class="display-2 text-center mb-2">{{ request.site.name }}</h1>
+{% block frame %}
+<main class="container" style="height: 700px;">
+    <h1 class="display-3 text-center mb-2">{{ request.site.name }}</h1>
 
     <div class="row">
         {% for obj in user.get_companies %}
@@ -38,7 +38,5 @@ las ditintas empresas que pertenecen al site actual.
             {% endif %}
         {% endfor %}
     </div>
-</div>
-
-
-{% endblock content %}
+</main>
+{% endblock frame %}

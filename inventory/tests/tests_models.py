@@ -43,20 +43,19 @@ class ItemTest(BaseTestCase):
         input_document.save()
         movement = Movement.objects.create(document=input_document, 
             item=self.item, quantity=10, price=0, discount=0, tax=0)
-        self.assertEqual(
-            self.item.get_available(company=input_doctype.company), 10)
+        self.assertEqual(self.item.get_available(input_document.warehouse), 10)
         # Modificamos la cantidad del movimiento a 15
         movement.quantity = 15
         movement.save()
         self.assertEqual(
-            self.item.get_available(company=input_doctype.company), 15)
+            self.item.get_available(input_document.warehouse), 15)
         # Añadimos otro movimiento diferente con el mismo artículo con cantidad 3
         movement2 = copy.copy(movement)
         movement.pk = None
         movement.quantity = 3
         movement.save()
         self.assertEqual(
-            self.item.get_available(company=input_doctype.company), 18)
+            self.item.get_available(input_document.warehouse), 18)
         # Simulamos crear un documento de salida con un movimiento de 4
         output_document = copy.copy(get_or_create_document())
         output_doctype = copy.copy(output_document.doctype)
@@ -70,7 +69,7 @@ class ItemTest(BaseTestCase):
         movement = Movement.objects.create(document=output_document, 
             item=self.item, quantity=4, price=0, discount=0, tax=0)
         self.assertEqual(
-            self.item.get_available(company=output_doctype.company), 14)
+            self.item.get_available(output_document.warehouse), 14)
         # Simulamos crear un documento que no afecta el inventario. la cantidad
         # será de 34 pero el disponible deberá seguir en 14 como el anterior.
         other_document = copy.copy(get_or_create_document())
@@ -85,7 +84,30 @@ class ItemTest(BaseTestCase):
         movement = Movement.objects.create(document=other_document, 
             item=self.item, quantity=34, price=0, discount=0, tax=0)
         self.assertEqual(
-            self.item.get_available(company=other_doctype.company), 14)
+            self.item.get_available(other_document.warehouse), 14)
+        # Realizamos una transferencia entre almacenes, y transferimos 1 artículo.
+        # en el almacén del documento se restará 1 que se sumará al nuevo 
+        # almacén donde serán transferido.
+        document = copy.copy(other_document)
+        document.pk = None
+        doctype = copy.copy(document.doctype)
+        doctype.pk = None
+        doctype.code = "TRANS"
+        doctype.generic_type = document.doctype.__class__.TRANSFER
+        doctype.save()
+        document.doctype = doctype
+        transfer_warehouse = copy.copy(document.warehouse)
+        transfer_warehouse.pk = None
+        transfer_warehouse.save()
+        document.transfer_warehouse = transfer_warehouse
+        document.save()
+        movement = Movement.objects.create(document=document, item=self.item, 
+            quantity=1, price=0, discount=0, tax=0)
+
+        # -1 en el almacén de salida = 13.
+        self.assertEqual(self.item.get_available(document.warehouse), 13)
+        # +1 en el almacén de entrada = 1
+        self.assertEqual(self.item.get_available(document.transfer_warehouse), 1)
 
     def test_the_performance_of_the_get_available_method(self):
         """Probamos el rendimiento del método get_available."""
@@ -179,6 +201,15 @@ class MovementTest(BaseTestCase):
         total = ((self.quantity * self.price) - self.discount) + self.tax
         local_total = total * self.movement.document.currency_rate
         self.assertEqual(local_total, self.movement.get_local_total())
+
+    def test_document_company_is_item_company(self):
+        """La empresa del documento debe ser la misma que la del artículo."""
+        company2 = copy.copy(self.movement.item.company)
+        company2.pk = None
+        company2.save()
+        self.movement.document.doctype.company = company2
+        self.assertRaises(ValidationError, self.movement.save)
+
 
 
     

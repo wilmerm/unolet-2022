@@ -111,6 +111,8 @@ class Company(utils.ModelBase):
                 "url": obj.build_url(company=self.pk),
                 "svg": format_html(obj.get_svg(fill="white")["svg"]),
                 "childrens": self.get_cascading_modules(parent=obj),
+                "css_bgcolor": obj.css_bgcolor,
+                "css_textcolor": obj.css_textcolor,
             })
         return out
 

@@ -153,10 +153,26 @@ class ModelBase(models.Model, text.Text):
     tags = models.CharField(max_length=700, blank=True, editable=False)
 
     class Meta:
+        verbose_name = ""
+        verbose_name_plural = ""
         abstract = True
 
     def __str__(self):
         return getattr(self, "name", None) or getattr(self, "pk", "ModelBase")
+
+    def clean(self):
+        try:
+            self.tags = text.Text.get_tag(str(self), combinate=True)[:700]
+        except (AttributeError):
+            pass
+
+    @property
+    def verbose_name(self):
+        return self.__class__._meta.verbose_name
+
+    @property
+    def verbose_name_plural(self):
+        return self.__class__._meta.verbose_name_plural
 
     @classmethod
     def get_base_url_name(cls):

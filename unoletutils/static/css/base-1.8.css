@@ -57,7 +57,28 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     --unolet-black: #343a40;
     --unolet-gray: #757575;
     --unolet-red: #dc3545;
-    --light2: rgb(238, 239, 240);
+    --light2: #eeeff0;
+    --blue: #0d6efd;
+    --indigo: #6610f2;
+    --purple: #6f42c1;
+    --pink: #d63384;
+    --red: #dc3545;
+    --orange: #fd7e14;
+    --yellow: #ffc107;
+    --green: #198754;
+    --teal: #20c997;
+    --cyan: #0dcaf0;
+    --white: #fff;
+    --gray: #6c757d;
+    --gray-dark: #343a40;
+    --primary: #0d6efd;
+    --secondary: #6c757d;
+    --success: #198754;
+    --info: #0dcaf0;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --light: #f8f9fa;
+    --dark: #212529;
 }
 
 
@@ -134,6 +155,40 @@ Botones con imágenes.
     background-color: #eee;
 }
 
+.btn-primary svg {
+    fill: var(--bs-white);
+}
+
+.btn-secondary svg {
+    fill: var(--bs-white);
+}
+
+.btn-info svg {
+    fill: var(--bs-white);
+}
+
+.btn-danger svg {
+    fill: var(--bs-white);
+}
+
+.btn-warning svg {
+    fill: var(--bs-dark);
+}
+
+.btn-success svg {
+    fill: var(--bs-white);
+}
+
+.btn-dark svg {
+    fill: var(--bs-white);
+}
+
+.btn-light svg {
+    fill: var(--bs-dark);
+}
+
+
+
 .btn-outline-primary svg {
     fill: var(--bs-primary);
 }
@@ -198,7 +253,6 @@ Botones con imágenes.
 .btn-outline-light:hover svg {
     fill: var(--bs-dark);
 }
-
 
 
 

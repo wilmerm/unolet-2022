@@ -5,6 +5,8 @@ from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse, reverse_lazy
 from django.core.exceptions import ValidationError
 
+from colorfield.fields import ColorField
+
 from unoletutils.libs import utils, icons
 
 
@@ -34,7 +36,6 @@ class Module(utils.ModelBase):
     ICON_CHOICES.sort()
     ICON_CHOICES = tuple(ICON_CHOICES)
 
-
     company = None
 
     name = models.CharField(_l("nombre"), max_length=70, unique=True)
@@ -49,6 +50,10 @@ class Module(utils.ModelBase):
     parent = models.ForeignKey("module.Module", on_delete=models.CASCADE, 
     blank=True, null=True, help_text=_l("módulo padre al cual pertenece."))
 
+    css_bgcolor = ColorField(_l("Color del fondo"), default="#404040")
+
+    css_textcolor = ColorField(_l("Color del texto"), default="#FFFFFF")
+
     class Meta:
         verbose_name = _l("módulo")
         verbose_name_plural = _l("módulos")
@@ -59,7 +64,6 @@ class Module(utils.ModelBase):
     
     def clean(self):
         self.name = self.name.lower()
-        self.description = (self.description or "").lower()
 
         # No puede ser hijo de si mismo.
         if self.parent == self:

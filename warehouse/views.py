@@ -3,9 +3,9 @@ from django.shortcuts import get_object_or_404
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 
+from dal import autocomplete
 
-#from guardian.mixins import PermissionRequiredMixin, LoginRequiredMixin
-
+from unoletutils.libs import text
 from unoletutils.views import (ListView, DetailView, UpdateView, CreateView, 
     DeleteView, TemplateView)
 from warehouse.models import Warehouse
@@ -55,3 +55,18 @@ class WarehouseDeleteView(DeleteView):
     """Modifica un almacén."""
     model = Warehouse
     #company_permission_required = "warehouse.change_warehouse"
+
+
+class WarehouseAutocompleteView(autocomplete.Select2QuerySetView):
+    """Vista dal.autocomplete para Warehouse."""
+
+    def get_queryset(self):
+        company_pk = self.kwargs["company"]
+        qs = Warehouse.active_objects.filter(company=company_pk)
+        q = self.request.GET.get("q")
+        
+        if q:
+            q = text.Text.get_tag(q)
+            qs = qs.filter(tags__icontains=q)
+
+        return qs

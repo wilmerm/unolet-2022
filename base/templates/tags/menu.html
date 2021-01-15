@@ -5,19 +5,19 @@
         {% for dic in modules %}
             {% if dic.childrens %}
             <div class="btn-group">
-                <a type="button" class="btn btn-secondary text-start w-90" href="{{ dic.url }}">{{ dic.svg }} {{ dic.name }}</a>
+                <a type="button" class="btn btn-secondary text-start w-90" href="{{ dic.url }}" style="border-left: 10px solid {{ dic.css_bgcolor }};">{{ dic.svg }} {{ dic.name|title }}</a>
                 <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
                     <span class="visually-hidden"></span>
                 </button>
                 <ul class="dropdown-menu">
                     {% for children in dic.childrens %}
-                    <li><a class="dropdown-item" href="{{ children.url }}">{{ children.name }}</a></li>
+                    <li><a class="dropdown-item" href="{{ children.url }}">{{ children.name|title }}</a></li>
                     {% endfor %}
                 </ul>
             </div>
             {% else %}
                 <div class="btn-group">
-                    <a class="btn btn-secondary text-start" href="{{ dic.url }}" role="button">{{ dic.svg }} {{ dic.name }}</a>
+                    <a class="btn btn-secondary text-start" href="{{ dic.url }}" role="button" style="border-left: 10px solid {{ dic.css_bgcolor }};">{{ dic.svg }} {{ dic.name|title }}</a>
                 </div>
             {% endif %}
         {% endfor %}

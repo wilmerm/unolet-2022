@@ -16,6 +16,13 @@ class WarehouseOnSiteManager(models.Manager):
             company__site=Site.objects.get_current())
 
 
+class WarehouseActiveManager(models.Manager):
+    """Obtiene los almacenes activos."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
+
 class Warehouse(utils.ModelBase):
     """
     Un almacén es una entidad del mundo real que pertenece a una empresa.
@@ -44,6 +51,8 @@ class Warehouse(utils.ModelBase):
     is_active = models.BooleanField(_l("activo"), default=True)
 
     objects = models.Manager()
+
+    active_objects = WarehouseActiveManager()
 
     on_site = WarehouseOnSiteManager()
 

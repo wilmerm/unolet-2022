@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     # Aplicaciones externas.
     
     'simple_history',
-    'bootstrap4',
+    'bootstrap5',
+    'colorfield',
 
     # Aplicaciones locales.
 

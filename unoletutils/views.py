@@ -7,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.views import generic
+from django.contrib import messages
 
 
 class ViewError(Exception):
@@ -34,25 +35,26 @@ class ObjectCapsule:
         return bool(self._obj)
 
     def __getattribute__(self, name):
+        errors = []
         try:
             return getattr(super().__getattribute__("_view"), name)
-        except (AttributeError) as e2:
-            pass
+        except (AttributeError) as e:
+            errors.append(str(e))
         try:
             return getattr(super().__getattribute__("_obj"), name)
-        except (AttributeError) as e1:
-            pass
+        except (AttributeError) as e:
+            errors.append(str(e))
         try:
             return super().__getattribute__(name)
-        except (AttributeError) as e3:
-            pass
+        except (AttributeError) as e:
+            errors.append(str(e))
 
-        raise AttributeError(e1, e2, e3) from e1
+        raise AttributeError(". ".join(errors))
 
     def get_values(self):
         """Obtiene los valores de los campos declarados en list_display. """
         return {
-            e[0]: {"value": getattr(self, e[0]), 
+            e[0]: {"value": self._obj.getattr(e[0]), 
                 "cssclass": self.get_list_display_cssclass().get(e[0])} 
             for e in self._view.get_list_display()}
 
@@ -95,6 +97,11 @@ class BaseView:
     pk_in_url = "pk"
     error_list = []
     company_permission_required = None
+    title = ""
+
+    def get_title(self):
+        vnp = str(getattr(self.get_object(), "verbose_name_plural", "")).title()
+        return str(self.title or self.get_object() or vnp)
 
     def get_company(self):
         """Obtiene la instancia de la empresa actual."""
@@ -165,6 +172,7 @@ class BaseList(BaseView):
     VALUES_FOR_PAGINATE_BY = (20, 40, 60, 80, 100)
     list_display = [("__str__", _l("nombre"))]
     list_display_cssclass = {}
+    list_display_links = ["__str__"]
 
     def get_queryset(self):
         # Establecemos el valor al atributo 'paginate_by' si se especifica en la
@@ -212,6 +220,15 @@ class BaseForm(BaseView):
                 form.instance.company = company
             except (AttributeError):
                 pass
+
+            messages.success(self.request, 
+                (f"¡{form.instance.verbose_name.capitalize()} "
+                f"'{form.instance}' {_('creado correctamente')}!"))
+        else:
+            messages.success(self.request, 
+                (f"¡{form.instance.verbose_name.capitalize()} "
+                f"'{form.instance}' {_('modificado correctamente')}!"))
+            
         return super().form_valid(form)
 
 

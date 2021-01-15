@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load humanize %}
+{% load bootstrap5 %}
 
 <!DOCTYPE html>
 <html lang="es">
@@ -13,6 +14,8 @@
     <link rel="stylesheet" href="/static/external/bootstrap/bootstrap-5.0.0-beta1-dist/css/bootstrap.css">
     <script src="/static/external/bootstrap/bootstrap-5.0.0-beta1-dist/js/bootstrap.bundle.js"></script>
 
+    <script src="/static/external/angularjs/angular-1.8.2.js"></script>
+
     <script src="/static/js/table-resize.js"></script>
     <script src="/static/js/utils-1.1.js"></script>
     <link rel="stylesheet" href="/static/css/base-1.8.css">
@@ -23,12 +26,12 @@
 
 </head>
 
-<body class="container-fluid overflow-hidden">
+<body class="container-fluid overflow-hidden p-0">
 
     {% block navbar %}
     <!-- {# Barra de navegación #} -->
     <div class="position-relative">
-        <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top border">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border w-100">
             <div class="container-fluid">
                 <div class="">
                     <a class="navbar-brand" href="{% if company %}{{ company.get_absolute_url }}{% else %}{% url 'index' %}{% endif %}">
@@ -83,8 +86,8 @@
 
 
     {% block frame %}
-    <div class="row my-md-5 h-100">
-        <aside id="section-left" class="col col-12 col-sm-12 col-md-3 col-lg-2 pt-4 bg-white border-end mt-md-2">
+    <div class="row h-100 px-2 pb-5">
+        <aside id="section-left" class="col col-12 col-sm-12 col-md-3 col-lg-2 bg-white border-end pt-2">
             {% block frame_left %}
             <nav aria-label="Docs navigation">
                 {% block frame_left_nav %}
@@ -93,13 +96,13 @@
             </nav>
             {% endblock %}
         </aside>
-        <div id="section-main" class="col col-12 col-sm-12 col-md-9 col-lg-10 h-100 px-0 mt-md-2">
+        <div id="section-main" class="col col-12 col-sm-12 col-md-9 col-lg-10 h-100 px-0">
             {% block frame_right %}
-            <aside class="border-bottom container-fluid">
+            <aside class="border-bottom container-fluid py-2">
                 {% block frame_right_top %}
-                <div class="row py-2">
+                <div class="row">
                     <div class="col col-12 col-sm-8">
-                        <h1 class="mb-0">{% block subtitle %}{% endblock %}</h1>
+                        <h1 class="mb-0">{% block subtitle %}{% firstof view.get_title object %}{% endblock %}</h1>
                     </div>
                     <div class="col col-12 col-sm-4 text-end h1 mb-0">
                         {% block actions %}
@@ -109,12 +112,16 @@
                 </div>
                 {% endblock %}
             </aside>
-            <main class="pt-2 pb-1 h-100 pre-scrollable" style="min-height: 600px">
+            <main class="pt-2 pb-1" style="height: 400px; overflow-y: scroll;">
+
+                <div class="container">{% bootstrap_messages request %}</div>
+                
+
                 {% block content %}
                 {% endblock content %}
 
                 {% if settings.DEBUG == True and request.GET.show_developer_data %}
-                {% developer_data view request %}
+                    {% developer_data view request %}
                 {% endif %}
             </main>
             {% endblock %}
@@ -131,7 +138,18 @@
         </div>
         {% endblock footer %}
     </footer>
-
 </body>
+
+
+<script>
+
+    // Formatea el contenido de los elementos con la clase 'intcomma' para que
+    // tengan un aspecto numérico por división de miles.
+    var intcomma_elements = document.querySelectorAll(".intcomma");
+    intcomma_elements.forEach(function(element) {
+        element.innerText = intcomma(element.innerText);
+    });
+
+</script>
 
 </html>

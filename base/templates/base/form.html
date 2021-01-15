@@ -1,11 +1,7 @@
 {% extends 'base/base.html' %}
 {% load i18n %}
-{% load bootstrap4 %}
+{% load bootstrap5 %}
 
-
-{% block subtitle %}
-    {% if object.pk %}{{ object }}{% else %}{% trans 'Nuevo registro' %}{% endif %}
-{% endblock %}
 
 {% block actions %}
     {% list_action_links_for_object request object defaults="create list detail delete" %}

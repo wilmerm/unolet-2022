@@ -374,4 +374,47 @@ class TaxReceiptAuthorization(utils.ModelBase):
         return TaxReceiptNumber.objects.filter(authorization=self)
 
 
+class Transaction(utils.ModelBase):
+    """
+    Transacción contable.
+    """
+
+    DEBIT, CREDIT = "-", "+"
+    MODE_CHOICES = (
+        (DEBIT, _l("Débito")),
+        (CREDIT, _l("Crédito")),
+    )
+
+    company = None # La empresa será document.doctype.company
+
+    document = models.ForeignKey("document.Document", on_delete=models.CASCADE)
+
+    # Determina si el monto se sumará o restará.
+    # Esta idea es relativa para la empresa, de modo que un crédito será una 
+    # entrada para la empresa y un débito una salida para la empresa.
+    mode = models.CharField(_l("modo"), max_length=1, choices=MODE_CHOICES)
+
+    amount = models.DecimalField(_l("monto"), max_digits=22, decimal_places=2,
+    validators=[MinValueValidator(0)])
+
+    concept = models.CharField(_l("concepto"), max_length=200, blank=True)
+
+    create_user = models.ForeignKey("user.User", on_delete=models.PROTECT, 
+    blank=True, null=True, default=None)
+
+    note = models.CharField(_l("nota"), max_length=500, blank=True)
+
+    class Meta:
+        verbose_name = _l("transacción")
+        verbose_name_plural = _l("transacciones")
+
+    def __str__(self):
+        if self.mode == self.DEBIT:
+            return f"-{self.amount:,}"
+        return f"{self.amount:,}"
+
+
+
+
+
 

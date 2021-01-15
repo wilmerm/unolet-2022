@@ -1,3 +1,7 @@
+import copy
+
+from django.core.exceptions import ValidationError
+
 from base.tests import BaseTestCase
 from document.models import DocumentType, Document
 from company.tests.tests_models import get_or_create_company
@@ -27,6 +31,28 @@ class DocumentModelTest(BaseTestCase):
     def test_str_method(self, document=None, str_number="TEST-000000000001"):
         document = document or self.document
         self.assertEqual(str(document), str_number)
+
+    def test_validate_transfer_warehouse_method(self):
+        """Para el campo 'transfer_warehouse' existen varias condiciones."""
+        # El campo transfer_warehouse es exclusivo para 
+        # documentos de tipo transferencia.
+        document = copy.copy(self.document)
+        document.pk = None
+        transfer_warehouse = copy.copy(document.warehouse)
+        transfer_warehouse.pk = None
+        transfer_warehouse.save()
+        document.transfer_warehouse = transfer_warehouse
+        self.assertRaises(ValidationError, document.clean)
+        self.assertRaises(ValidationError, document.save)
+        # En este punto corregimos que el tipo de documento sea transferencia.
+        # Pero el almacén del documento debe ser distinto al de transfeir.
+        doctype = copy.copy(document.doctype)
+        doctype.pk = None
+        doctype.generic_type = DocumentType.TRANSFER
+        document.doctype = doctype
+        document.transfer_warehouse = document.warehouse
+        self.assertRaises(ValidationError, document.clean)
+        self.assertRaises(ValidationError, document.save)
 
     def test_str_is_doctype_and_number_length_12_chars(self):
         """

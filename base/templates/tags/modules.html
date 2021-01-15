@@ -2,8 +2,8 @@
 <div class="container">
     <div class="row">
         {% for obj in module_list %}
-        <a href="{% url obj.url_name company=request.company.pk %}" class="col col-12 col-sm-6 col-md-4 col-lg-3 btn btn-outline-secondary text-start border m-1">
-            <div class=h2>{{ obj.get_svg.svg|safe }} {{ obj }}</div>
+        <a href="{% url obj.url_name company=request.company.pk %}" class="col col-12 col-sm-6 col-md-4 col-lg-3 btn btn-dark text-start border m-1 shadow-sm p-4 opacity-9-hover" style="background-color: {{ obj.css_bgcolor }}; color: {{ obj.css_textcolor }}">
+            <div class="h2 border-bottom pb-1">{{ obj.get_svg.svg|safe }} {{ obj|title }}</div>
             <div class="">{{ obj.description }}</div>
         </a>
         {% endfor %}

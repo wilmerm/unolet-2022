@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Sum, F
 from django.core.exceptions import ValidationError
 from django.core.validators import (MinValueValidator, MaxValueValidator)
+from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse_lazy
 
@@ -137,15 +138,18 @@ class Item(utils.ModelBase):
         """Obtiene la cantidad disponible global de este artículo."""
         from document.models import Document
         
-        inp = Movement.input_objects.filter(item=self)
-        out = Movement.output_objects.filter(item=self)
+        inputs = Movement.input_objects.filter(item=self)
+        outputs = Movement.output_objects.filter(item=self)
+        trans = Movement.transfer_objects.filter(item=self)
 
         if warehouse != None:
-            inp = inp.filter(document__warehouse=warehouse)
-            out = out.filter(document__warehouse=warehouse)
+            inputs = inputs.filter(document__warehouse=warehouse)
+            inputs = inputs | trans.filter(document__transfer_warehouse=warehouse)
+            outputs = outputs.filter(document__warehouse=warehouse)
+            outputs = outputs | trans.filter(document__warehouse=warehouse)
 
-        input_sum = inp.aggregate(s=models.Sum("quantity"))["s"] or 0
-        output_sum = out.aggregate(s=models.Sum("quantity"))["s"] or 0
+        input_sum = inputs.aggregate(s=models.Sum("quantity"))["s"] or 0
+        output_sum = outputs.aggregate(s=models.Sum("quantity"))["s"] or 0
         return input_sum - output_sum
 
 
@@ -154,8 +158,9 @@ class InputMovementManager(models.Manager):
 
     def get_queryset(self):
         from document.models import DocumentType
+        generic_types = DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_INPUT
         return super().get_queryset().filter(
-            document__doctype__inventory=DocumentType.INPUT)
+            document__doctype__generic_type__in=generic_types)
 
 
 class OutputMovementManager(models.Manager):
@@ -163,8 +168,18 @@ class OutputMovementManager(models.Manager):
 
     def get_queryset(self):
         from document.models import DocumentType
+        generic_types = DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_OUTPUT
         return super().get_queryset().filter(
-            document__doctype__inventory=DocumentType.OUTPUT)
+            document__doctype__generic_type__in=generic_types)
+
+
+class TransferMovementManager(models.Manager):
+    """Manager para movimientos que pertenecen a transferencia de inventario."""
+
+    def get_queryset(self):
+        from document.models import DocumentType
+        return super().get_queryset().filter(
+            document__doctype__generic_type=DocumentType.TRANSFER)
 
 
 class Movement(utils.ModelBase):
@@ -172,14 +187,17 @@ class Movement(utils.ModelBase):
     Movimiento de inventario.
     """
 
-    company = None # la empresa será document.company
+    company = None # la empresa será document.doctype.company
 
     document = models.ForeignKey("document.Document", on_delete=models.CASCADE)
 
     number = models.IntegerField(_l("número"), default=1)
 
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, 
-    verbose_name=_l("artículo"))
+    # El artículo puede ser nulo, así existe la posibilidad de que se puedan 
+    # registrar movimientos contables, commo ingresos o gastos, o simplemente
+    # artículos de servicios que no estén registrados como tal.
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, blank=True, 
+    null=True, verbose_name=_l("artículo"))
 
     quantity = models.DecimalField(_l("cantidad"), max_digits=12, 
     decimal_places=2, validators=[MinValueValidator(0)])
@@ -194,8 +212,15 @@ class Movement(utils.ModelBase):
     validators=[MinValueValidator(0)])
 
     objects = models.Manager()
+
+    # Manejador para movimientos en documentos que afectan el inv. como entrada.
     input_objects = InputMovementManager()
+
+    # Manejador para movimientos en documentos que afectan el inv. como salida.
     output_objects = OutputMovementManager()
+
+    # Manejador para movimientos en documentos de tipo transferencia.
+    transfer_objects = TransferMovementManager()
 
     class Meta:
         verbose_name = _l("movimiento")
@@ -232,6 +257,12 @@ class Movement(utils.ModelBase):
 
         if not getattr(self, "number", None):
             self.number = self._get_next_number()
+
+        # La empresa en el documento debe ser la misma empresa del artículo.
+        # document.doctype.company == item.company
+        if self.document.doctype.company != self.item.company:
+            raise ValidationError(
+                _("La empresa del documento y el artículo no es la misma."))
         
         out = super().save(*args, **kwargs)
 
@@ -271,7 +302,9 @@ class Movement(utils.ModelBase):
         Obtiene el disponible del artículo en este movimiento para el 
         almacén indicado o el almacén del documento de este movimiento.
         """
+        if self.item == None:
+            return 0
         warehouse = warehouse or self.document.warehouse
-        return self.item.get_available(self.document.doctype.company, warehouse)
+        return self.item.get_available(warehouse=warehouse)
 
 
