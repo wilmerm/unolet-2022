@@ -55,7 +55,7 @@ class ObjectCapsule:
         """Obtiene los valores de los campos declarados en list_display. """
         return {
             e[0]: {"value": self._obj.getattr(e[0]), 
-                "cssclass": self.get_list_display_cssclass().get(e[0])} 
+                "cssclass": self.get_list_display_cssclass().get(e[0], "")} 
             for e in self._view.get_list_display()}
 
 

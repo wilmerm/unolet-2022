@@ -1,1 +1,119 @@
 {% extends 'document/form.html' %}
+{% load i18n %}
+{% load bootstrap5 %}
+{% load base %}
+
+
+{% block content %}
+<div class="container" id="document-form-app">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col col-12 col-md-8">
+                <form action="" method="POST"> {% csrf_token %}
+                    {% bootstrap_form_errors form %}
+                    <div class="row">
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.warehouse %}{% bootstrap_field form.warehouse %}{% endif %}
+                        </div>
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.transfer_warehouse %}{% bootstrap_field form.transfer_warehouse %}{% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.doctype %}{% bootstrap_field form.doctype %}{% endif %}
+                        </div>
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.number %}{% bootstrap_field form.number %}{% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.person %}{% bootstrap_field form.person %}{% endif %}
+                        </div>
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.person_name %}{% bootstrap_field form.person_name %}{% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col col- col-sm-6 col-md-4 col-lg-3">
+                            {% if form.currency %}{% bootstrap_field form.currency %}{% endif %}
+                        </div>
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.currency_rate %}{% bootstrap_field form.currency_rate %}{% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if form.pay_taxes %}{% bootstrap_field form.pay_taxes %}{% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col col-12">
+                            {% if form.note %}{% bootstrap_field form.note %}{% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                    <div>
+                        <input class="btn btn-success" type="submit" value="{% trans 'Guardar' %}">
+                    </div>
+                </form>
+            </div>
+            <div class="col col-12 col-md-4 border bg-white">
+                <!--  -->
+                
+            </div>
+        </div>
+    </div>
+    <hr>
+    <h2>{% trans 'Movimientos' %}</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm table-striped table-resize">
+            <thead>
+                <tr>
+                    <th>{% trans 'No.' %}</th>
+                    <th>{% trans 'Referencia' %}</th>
+                    <th>{% trans 'Nombre' %}</th>
+                    <th>{% trans 'Cantidad' %}</th>
+                    <th>{% trans 'Precio' %}</th>
+                    <th>{% trans 'Descuento' %}</th>
+                    <th>{% trans 'Impuesto' %}</th>
+                    <th>{% trans 'Total' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="obj in movements">
+                    <td>{% vue 'obj.number' %}</td>
+                    <td>{% vue 'obj.item__codename' %}</td>
+                    <td>{% vue 'obj.name' %}</td>
+                    <td class="text-end">{% vue 'intcomma(obj.quantity)' %}</td>
+                    <td class="text-end">{% vue 'intcomma(obj.price)' %}</td>
+                    <td class="text-end">{% vue 'intcomma(obj.discount)' %}</td>
+                    <td class="text-end">{% vue 'intcomma(obj.tax)' %}</td>
+                    <td class="text-end">{% vue 'intcomma(obj.total)' %}</td>
+                </tr>
+            </tbody>
+            <tfoot v-if="totals">
+                <td colspan="5">{% vue 'totals.count' %} {% trans 'registro(s)' %}</td>
+                <td class="text-end">{% vue 'intcomma(totals.discount)' %}</td>
+                <td class="text-end">{% vue 'intcomma(totals.tax)' %}</td>
+                <td class="text-end">{% vue 'intcomma(totals.total)' %}</td>
+            </tfoot>
+        </table>
+    </div>
+
+</div>
+
+<script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
+<script>
+    const URLS = {
+        document_document_movement_list_json: "{% if object.pk %}{% url 'document-document-movement-list-json' company=company.pk document=object.pk %}{% endif %}",
+    }
+</script>
+<script src="/static/js/apps/document-form-app.js"></script>
+{% endblock content %}

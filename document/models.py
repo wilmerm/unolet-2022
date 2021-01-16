@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.db.models import Sum, F
 from django.conf import settings
@@ -186,7 +188,7 @@ class Document(utils.ModelBase):
     number = models.IntegerField(_l("número"), editable=False)
 
     person = models.ForeignKey("person.Person", on_delete=models.PROTECT, 
-    null=True, blank=True)
+    null=True, blank=True, verbose_name=_l("persona"))
 
     person_name = models.CharField(_l("nombre de la persona"), max_length=100,
     blank=True)
@@ -254,10 +256,9 @@ class Document(utils.ModelBase):
     def get_next_number_for_type(self, doctype=None):
         """Obtiene el siguiente número para el tipo de documento indicado."""
         try:
-            mx = Document.objects.filter(doctype=doctype).order_by("number")[0]
+            mx = Document.objects.filter(doctype=doctype).order_by("-number")[0]
         except (IndexError):
             return 1
-
         return mx.number + 1
 
     def get_absolute_url(self):
@@ -296,7 +297,7 @@ class Document(utils.ModelBase):
         self.validate_transfer_warehouse()
         return super().save(*args, **kwargs)
 
-    def calculate(self):
+    def calculate(self) -> dict:
         """
         Calcula los totales, actualiza los campos correspondientes y retorna 
         un diccionario con los resultados.
@@ -324,7 +325,7 @@ class Document(utils.ModelBase):
 
         return out
 
-    def get_number(self, doctype=None, number=None):
+    def get_number(self, doctype=None, number=None) -> str:
         """Contruye y obtiene el número vísible del documento con su tipo."""
         doctype = doctype or getattr(self, "doctype", None)
         number = number or getattr(self, "number", "")
@@ -340,15 +341,19 @@ class Document(utils.ModelBase):
     def get_person_name(self):
         return str(self.person or self.person_name)
 
-    def get_balance(self):
+    def get_movements(self) -> models.QuerySet:
+        """Obtiene los movimientos de este documento."""
+        return self.movement_set.all()
+
+    def get_balance(self) -> Decimal:
         """Obtiene el saldo de este documento."""
         self.calculate() # Actualizamos primero por si acaso.
         credit_sum = self.get_credits().aggregate(s=Sum("amount"))["s"] or 0
         debit_sum = self.get_debits().aggregate(s=Sum("amount"))["s"] or 0
-        trans_sum = credit_sum - debit_sum
-        return self.total - trans_sum
+        total_sum = credit_sum - debit_sum
+        return self.total - total_sum
 
-    def get_credits(self):
+    def get_credits(self) -> models.QuerySet:
         """
         Obtiene las transacciones de tipo crédito relativos a este documento.
         Relativo al documento porque no se considera si la transacción a sido 
@@ -357,11 +362,11 @@ class Document(utils.ModelBase):
         """
         return self.get_transactions().filter(mode=Transaction.CREDIT)
 
-    def get_debits(self):
+    def get_debits(self) -> models.QuerySet:
         """Igual que get_relative_credits pero con los débitos."""
         return self.get_transactions().filter(mode=Transaction.DEBIT)
 
-    def get_transactions(self):
+    def get_transactions(self) -> models.QuerySet:
         """Obtiene las transacciones contables realizadas a este documento."""
         return self.transaction_set.all()
 

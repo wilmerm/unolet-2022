@@ -197,13 +197,15 @@ class Movement(utils.ModelBase):
 
     document = models.ForeignKey("document.Document", on_delete=models.CASCADE)
 
-    number = models.IntegerField(_l("número"), default=1)
+    number = models.IntegerField(_l("número"), default=1, editable=False)
 
     # El artículo puede ser nulo, así existe la posibilidad de que se puedan 
     # registrar movimientos contables, commo ingresos o gastos, o simplemente
     # artículos de servicios que no estén registrados como tal.
     item = models.ForeignKey(Item, on_delete=models.CASCADE, blank=True, 
     null=True, verbose_name=_l("artículo"))
+
+    name = models.CharField(_l("nombre"), max_length=70, blank=True)
 
     quantity = models.DecimalField(_l("cantidad"), max_digits=12, 
     decimal_places=2, validators=[MinValueValidator(0)])
@@ -215,7 +217,7 @@ class Movement(utils.ModelBase):
     decimal_places=2, validators=[MinValueValidator(0)])
 
     tax = models.DecimalField(_l("impuesto"), max_digits=22, decimal_places=2,
-    blank=True, default=0, validators=[MinValueValidator(0)])
+    blank=True, default=0, editable=False, validators=[MinValueValidator(0)])
 
     objects = models.Manager()
 
@@ -252,6 +254,9 @@ class Movement(utils.ModelBase):
             campos en el documento para actualizar sus campos con 
             document.calculate()
         """
+        if not self.name:
+            self.name = self.item.name 
+
         # Establecemos el impuesto a self.tax
         self.calculate_tax()
 

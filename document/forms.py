@@ -1,5 +1,7 @@
 from django import forms
 from django.urls import reverse_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 from dal import autocomplete
 
@@ -18,38 +20,47 @@ class DocumentForm(ModelForm):
         exclude = ["create_user"]
 
     def __init__(self, *args, **kwargs):
+
+        self.generictype = kwargs.pop("generictype")
         super().__init__(*args, **kwargs)
         
         warehouse_qs = Warehouse.active_objects.filter(company=self.company.pk)
-        doctype_qs = DocumentType.active_objects.filter(company=self.company.pk)
+        doctype_qs = DocumentType.active_objects.filter(company=self.company.pk, 
+            generic_type=self.generictype)
         person_qs = Person.active_objects.filter(company=self.company.pk)
         currency_qs = Currency.objects.filter(company=self.company.pk)
 
         self.fields["warehouse"] = forms.ModelChoiceField(
+            label=_("Almacén"),
             queryset=warehouse_qs, 
             widget=autocomplete.ModelSelect2(
                 url=reverse_lazy("warehouse-autocomplete-warehouse", 
                 kwargs={"company": self.company.pk})))
 
         self.fields["transfer_warehouse"] = forms.ModelChoiceField(
+            label=_("Almacén de transferencia"),
             queryset=warehouse_qs, 
             widget=autocomplete.ModelSelect2(
                 url=reverse_lazy("warehouse-autocomplete-warehouse", 
                 kwargs={"company": self.company.pk})))
 
         self.fields["doctype"] = forms.ModelChoiceField(
+            label=_("Tipo"),
             queryset=doctype_qs, 
             widget=autocomplete.ModelSelect2(
                 url=reverse_lazy("document-autocomplete-documenttype", 
-                kwargs={"company": self.company.pk})))
+                kwargs={"company": self.company.pk, 
+                    "generictype": self.generictype})))
 
         self.fields["person"] = forms.ModelChoiceField(
+            label=_("Persona"),
             queryset=person_qs, 
             widget=autocomplete.ModelSelect2(
                 url=reverse_lazy("person-autocomplete-person", 
                 kwargs={"company": self.company.pk})))
 
         self.fields["currency"] = forms.ModelChoiceField(
+            label=_("Moneda"),
             queryset=currency_qs, 
             widget=autocomplete.ModelSelect2(
                 url=reverse_lazy("finance-autocomplete-currency", 

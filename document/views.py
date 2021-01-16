@@ -1,13 +1,17 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import (DetailView, UpdateView, CreateView, ListView)
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
+from django.http import JsonResponse, Http404
+from django.db.models import Sum, F
+from django.core import serializers
 
 from dal import autocomplete
 
 from unoletutils.libs import text
 from unoletutils.views import (UpdateView, CreateView, ListView, DetailView, 
     DeleteView, TemplateView)
+from company.models import Company
 from document.models import (Document, DocumentType)
 from document.forms import (DocumentForm, DocumentPurchaseForm, 
     DocumentInvoiceForm, DocumentInventoryInputForm, 
@@ -86,6 +90,7 @@ class DocumentListView(BaseDocument, ListView):
         "discount": "text-end intcomma",
         "tax": "text-end intcomma",
         "total": "text-end intcomma",
+        "get_balance": "text-end intcomma",
     }
 
     generictype = None
@@ -111,6 +116,23 @@ class DocumentUpdateView(BaseDocument, UpdateView):
     company_field = "doctype__company"
     generictype = None
 
+    def get_template_names(self):
+        if self.generictype:
+            return f"document/document/{self.generictype}_form.html"
+        return super().get_template_names()
+
+    def get_form_class(self):
+        if self.generictype:
+            generic = "".join([e.title() for e in self.generictype.split("_")])
+            class_name = f"Document{generic}Form"
+            return globals()[class_name]
+        return super().get_form_class()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["generictype"] = getattr(self, "generictype", None)
+        return kwargs
+
 
 class DocumentCreateView(BaseDocument, CreateView):
     """Crea un documento."""
@@ -125,20 +147,68 @@ class DocumentCreateView(BaseDocument, CreateView):
 
     def get_form_class(self):
         if self.generictype:
-            class_name = f"Document{self.generictype.capitalize()}Form"
+            generic = "".join([e.title() for e in self.generictype.split("_")])
+            class_name = f"Document{generic}Form"
             return globals()[class_name]
         return super().get_form_class()
-        
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["generictype"] = getattr(self, "generictype", None)
+        return kwargs
+        
 
 class DocumentTypeAutocompleteView(autocomplete.Select2QuerySetView):
     """Vista dal.autocomplete para DocumentType."""
 
     def get_queryset(self):
         company_pk = self.kwargs["company"]
-        qs = DocumentType.active_objects.filter(company=company_pk)
+        generictype = self.kwargs["generictype"]
+
+        qs = DocumentType.active_objects.filter(
+            company=company_pk, generic_type=generictype)
 
         if self.request.GET.get("q"):
             qs = qs.filter(tags__icontains=text.Text.get_tag(q))
 
         return qs
+
+
+# Json Views.
+
+def document_movements_jsonview(request, company: int, 
+    document: int) -> JsonResponse:
+    """Retorna un listado de movimientos del documento en cuestión."""
+
+    company = get_object_or_404(Company, pk=company)
+    document = get_object_or_404(Document, pk=document)
+
+    if not company.user_has_access(request.user):
+        raise Http404("El usuario no tiene acceso a esta empresa.")
+
+    if company != document.doctype.company:
+        raise Http404(f"El documento {document} no pertenece a esta empresa.")
+
+    movement_qs = document.get_movements().annotate(
+        amount=F("quantity") * F("price") - F("discount"), 
+        total=F("amount") + F("tax"))
+
+    out = {
+        "document": document.to_json(),
+        "movements": list(movement_qs.values("id", "number", "item_id",
+            "item__codename", "item__name", "name", "quantity", "price",
+            "discount", "tax", "amount", "total")
+        ),
+        "totals": {
+            "count": movement_qs.count(),
+            "discount": movement_qs.aggregate(s=Sum("discount"))["s"] or 0,
+            "tax": movement_qs.aggregate(s=Sum("tax"))["s"] or 0,
+            "amount": movement_qs.aggregate(s=Sum("amount"))["s"] or 0,
+            "total": movement_qs.aggregate(s=Sum("total"))["s"] or 0,
+        },
+
+    }
+
+
+    
+    return JsonResponse({"data": out})

@@ -50,13 +50,13 @@ def verbose_name_plural(obj):
 
 
 @register.simple_tag
-def angular(value: str) -> str:
+def vue(value: str) -> str:
     """Encierra el valor en doble llaves 'value' -> '{{ value }}'."""
     return "{{ %s }}" % value
 
 
 @register.filter
-def angular(value: str) -> str:
+def vue(value: str) -> str:
     """Encierra el valor en doble llaves 'value' -> '{{ value }}'."""
     return "{{ %s }}" % value
 

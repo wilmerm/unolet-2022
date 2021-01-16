@@ -388,53 +388,11 @@ class ModelBase(models.Model, text.Text):
     def to_dict(self, to_json: bool=False, for_json: bool=False, 
         no_json_serialize_to_str: bool=False):
         """
-        Obtiene un diccionario con los nombres de los campos como claves,
-        y otro diccionario como valores, con algunos valores de la field.
-
-        Parameters:
-            to_json = True: devolverá un objeto Json.
-
-            for_json = True: devolverá un diccionario válido para ser 
-            serializado a json.
-
-            no_json_serialize_to_str = True: Para los campos que no sean 
-            serializados a json, serán convertidos a string mediante str(value).
-        """
-        out = {}
-        fields = self.GetFields()
-        for field in fields:
-
-            value = getattr(self, field.name, None)
-
-            if (to_json) or (for_json):
-
-                if (isinstance(value, Decimal)):
-                    value = float(value)
-
-                # Los campos que no se puedan serializar a Json,
-                # no serán incluidos.
-                try:
-                    json.dumps(value)
-                except (TypeError):
-                    if (not no_json_serialize_to_str):
-                        value = str(value)
-                    else:
-                        continue
-
-            out[field.name] = {
-                "name": field.name,
-                "verbose_name": field.verbose_name,
-                "value": value,
-                "editable": field.editable,
-            }
-
-        if (to_json):
-            return json.dumps(out)
-        return out
+        REESCRIBIR ESTE MÉTODO."""
 
     def to_json(self):
         """Obtiene un objeto tipo Json con los datos de los campos."""
-        return self.ToDict(to_json=True)
+        return self.to_dict(to_json=True)
 
     @classmethod
     def get_img_without_default(cls):

@@ -7,11 +7,17 @@ from document.models import DocumentType
 urlpatterns = [
     path("", views.Index.as_view(), name="document-index"),
 
-    # django-autocomplete-light
+    # Json views.
 
-    path("json/documenttype/list/", views.DocumentTypeAutocompleteView.as_view(),
+    path("json/document/<int:document>/movement/list/", 
+    views.document_movements_jsonview, 
+    name="document-document-movement-list-json"),
+
+    # django-autocomplete-light.
+
+    path("json/documenttype/<str:generictype>/list/", 
+    views.DocumentTypeAutocompleteView.as_view(),
     name="document-autocomplete-documenttype"),
-
 ]
 
 
