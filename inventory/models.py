@@ -65,6 +65,13 @@ class ItemFamily(utils.ModelBase):
     def save(self, *args, **kwargs):
         self.name = " ".join(self.name.split()).upper()
         return super().save(*args, **kwargs)
+
+
+class ItemActiveManager(models.Manager):
+    """Obtiene solo los items activos."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
     
 
 class Item(utils.ModelBase):
@@ -97,6 +104,21 @@ class Item(utils.ModelBase):
 
     tax = models.ForeignKey("finance.Tax", on_delete=models.SET_NULL,
     blank=True, null=True)
+
+    min_price = models.DecimalField(_l("precio mínimo"), max_digits=22, 
+    decimal_places=2, default=0, blank=True)
+
+    max_price = models.DecimalField(_l("precio máximo"), max_digits=22,
+    decimal_places=2, default=0, blank=True)
+
+    available = models.DecimalField(_l("disponible"), max_digits=22, 
+    decimal_places=2, default=0, blank=True, editable=False)
+
+    is_active = models.BooleanField(_l("activo"), default=True)
+
+    objects = models.Manager()
+
+    active_objects = ItemActiveManager()
 
     class Meta:
         verbose_name = _l("artículo")
@@ -218,6 +240,11 @@ class Movement(utils.ModelBase):
 
     tax = models.DecimalField(_l("impuesto"), max_digits=22, decimal_places=2,
     blank=True, default=0, editable=False, validators=[MinValueValidator(0)])
+
+    tax_already_included = models.BooleanField(_l("impuesto ya incluido"), 
+    default=False, help_text=_l("Indica que el impuesto ya está incluido en el "
+    "monto (precio) especificado, entonces se extraerá el impuesto del monto "
+    "indicado (si aplica)."))
 
     objects = models.Manager()
 

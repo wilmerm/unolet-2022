@@ -193,8 +193,47 @@ def document_movements_jsonview(request, company: int,
         amount=F("quantity") * F("price") - F("discount"), 
         total=F("amount") + F("tax"))
 
+    doctype = document.doctype
+    tax_receipt = getattr(doctype, "tax_receipt", None)
+
     out = {
-        "document": document.to_json(),
+        "document": {
+            "id": document.id,
+            "warehouse": str(document.warehouse),
+            "warehouse_id": document.warehouse_id,
+            "warehouse__name": document.warehouse.name,
+            "warehouse__is_active": document.warehouse.is_active,
+            "transfer_warehouse": str(document.transfer_warehouse),
+            "transfer_warehouse_id": document.transfer_warehouse_id,
+            "transfer_warehouse__name": getattr(document.transfer_warehouse, "name", ""),
+            "transfer_warehouse__is_active": getattr(document.transfer_warehouse, "is_active", ""),
+            "number": document.number,
+            "person": str(document.person),
+            "person_id": document.person_id,
+            "currency": str(document.currency),
+            "currency_id": document.currency_id,
+            "currency_rate": document.currency_rate,
+            "tax_receipt_number": str(document.tax_receipt_number),
+            "tax_receipt_number_id": document.tax_receipt_number_id,
+            "pay_taxes": document.pay_taxes,
+            "amount": document.amount,
+            "discount": document.discount,
+            "tax": document.tax,
+            "total": document.total,
+            "create_user": str(document.create_user),
+            "create_date": document.create_date,
+            "doctype": str(document.doctype),
+            "doctype_id": document.doctype.id,
+            "doctype__code": doctype.code,
+            "doctype__name": doctype.name,
+            "doctype__generic_type": doctype.generic_type,
+            "doctype__affect_cost": doctype.affect_cost,
+            "doctype__is_active": doctype.is_active,
+            "doctype__tax_receipt_id": getattr(tax_receipt, "id", None),
+            "doctype__tax_receipt__code": getattr(tax_receipt, "code", None),
+            "doctype__tax_receipt__name": getattr(tax_receipt, "name", None),
+            "doctype__tax_receipt__is_active": getattr(tax_receipt, "is_active", False),
+        },
         "movements": list(movement_qs.values("id", "number", "item_id",
             "item__codename", "item__name", "name", "quantity", "price",
             "discount", "tax", "amount", "total")
@@ -209,6 +248,4 @@ def document_movements_jsonview(request, company: int,
 
     }
 
-
-    
     return JsonResponse({"data": out})

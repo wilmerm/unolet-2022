@@ -1,0 +1,28 @@
+<html>
+    <head></head>
+    <body>
+        
+        
+        <div id="test-app">
+            <ol>
+                <!--
+                  Now we provide each todo-item with the todo object
+                  it's representing, so that its content can be dynamic.
+                  We also need to provide each component with a "key",
+                  which will be explained later.
+                -->
+                <items
+                  v-for="value in movements"
+                  v-bind:value="value"
+                  v-bind:key="value"
+                ></items>
+              </ol>
+        </div>
+        
+        
+        <script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
+        <script src="/static/js/apps/test/test.js"></script>
+        
+    </body>
+</html>
+

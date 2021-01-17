@@ -102,8 +102,6 @@ class Tax(utils.ModelBase):
         return self.value 
 
 
-
-
 class TaxReceipt(utils.ModelBase):
     """
     Comprobante fiscal.

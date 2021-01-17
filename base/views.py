@@ -34,3 +34,7 @@ class IndexView(LoginRequiredMixin, TemplateView):
     template_name = "base/index.html"
 
 
+class TestView(LoginRequiredMixin, TemplateView):
+    """Vista para realizar pruebas de diseño y javascript."""
+
+    template_name = "base/test.html"

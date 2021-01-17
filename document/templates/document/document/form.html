@@ -6,6 +6,10 @@
 
 {% block content %}
 <div class="container" id="document-form-app">
+
+    <button-counter></button-counter>
+
+
     <div class="container-fluid">
         <div class="row">
             <div class="col col-12 col-md-8">
@@ -71,11 +75,21 @@
         </div>
     </div>
     <hr>
-    <h2>{% trans 'Movimientos' %}</h2>
+    <div class="row">
+        <div class="col col-8"><h2>{% trans 'Movimientos' %}</h2></div>
+        <div class="col col-4 text-end">
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#movement-add-modal">
+                {% svg 'plus-circle-fill' %} {% trans 'Nuevo movimiento' %}
+            </button>
+        </div>
+    </div>
     <div class="table-responsive">
-        <table class="table table-bordered table-sm table-striped table-resize">
+        <table class="table table-bordered table-striped table-resize">
             <thead>
                 <tr>
+                    <th></th>
+                    <th></th>
                     <th>{% trans 'No.' %}</th>
                     <th>{% trans 'Referencia' %}</th>
                     <th>{% trans 'Nombre' %}</th>
@@ -88,6 +102,11 @@
             </thead>
             <tbody>
                 <tr v-for="obj in movements">
+                    <td>
+                        <a href="#" class="py-0 px-1">{% svg 'pencil-fill' size='1rem' %}</a>
+                        <a href="#" class="py-0 px-1">{% svg 'x-circle-fill' size='1rem' %}</a>
+                    </td>
+                    <td><input type="checkbox"></td>
                     <td>{% vue 'obj.number' %}</td>
                     <td>{% vue 'obj.item__codename' %}</td>
                     <td>{% vue 'obj.name' %}</td>
@@ -99,21 +118,123 @@
                 </tr>
             </tbody>
             <tfoot v-if="totals">
-                <td colspan="5">{% vue 'totals.count' %} {% trans 'registro(s)' %}</td>
+                <td colspan="7">{% vue 'totals.count' %} {% trans 'registro(s)' %}</td>
                 <td class="text-end">{% vue 'intcomma(totals.discount)' %}</td>
                 <td class="text-end">{% vue 'intcomma(totals.tax)' %}</td>
                 <td class="text-end">{% vue 'intcomma(totals.total)' %}</td>
             </tfoot>
         </table>
     </div>
-
+    <!-- movement-add-modal -->
+    <div class="modal fade" id="movement-add-modal" tabindex="-1" aria-labelledby="Movement Add" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="movement-add-modal-label">{% trans 'Nuevo movimiento' %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <item-search></item-search>
+                    <div class="container-fluid">
+                        <input type="number" id="id_movement_id" v-model="movement.id">
+                        <input type="number" id="id_movement_item_id" v-model="movement.item_id">
+                        <div class="row">
+                            <div class="col col-12 col-sm-4 col-md-4 col-lg-4">
+                                <label class="w-100">{% trans 'Referencia' %}
+                                    <input type="text" v-model="movement.item__codename" class="form-control">
+                                </label>
+                            </div>
+                            <div class="col col-12 col-sm-8 col-md-8 col-lg-8">
+                                <label class="w-100">{% trans 'Nombre' %}
+                                    <input type="text" v-model="movement.name" class="form-control">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Cantidad' %}
+                                    <input type="number" v-model="movement.quantity" class="form-control">
+                                </label>
+                            </div>
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Disponible' %}
+                                    <input type="number" v-model="movement.available" class="form-control">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Precio' %}
+                                    <input type="number" v-model="movement.price" class="form-control">
+                                </label>
+                            </div>
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Precio mínimo' %}
+                                    <input type="number" v-model="movement.min_price" class="form-control">
+                                </label>
+                            </div>
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <div class="form-check" title="{% trans 'Indica que el impuesto ya está incluido en el monto (precio) especificado, entonces se extraerá el impuesto del monto indicado (si aplica).' %}">
+                                    <label class="w-100 form-check-label">{% trans 'Impuesto ya incluido' %}
+                                        <input type="checkbox" v-model="movement.tax_already_included" class="form-check-input">
+                                    </label>
+                                    <small class="form-text text-muted">{% trans 'Indique si el impuesto ya está incluido en el precio' %}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Descuento %' %}
+                                    <input type="number" v-model="movement.discount_percent" class="form-control">
+                                </label>
+                            </div>
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Descuento total' %}
+                                    <input type="number" v-model="movement.discount" class="form-control">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Impuesto' %}
+                                    <input type="number" v-model="movement.tax" class="form-control">
+                                </label>
+                            </div>
+                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                                <label class="w-100">{% trans 'Total' %}
+                                    <input type="number" v-model="movement.total" class="form-control">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cerrar' %}</button>
+                    <button type="button" class="btn btn-primary">{% trans 'Guardar' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
 <script>
     const URLS = {
         document_document_movement_list_json: "{% if object.pk %}{% url 'document-document-movement-list-json' company=company.pk document=object.pk %}{% endif %}",
+        inventory_item_list_json: "{% url 'inventory-item-list-json' company=company.pk %}",
     }
+
+    const TITLES = {
+        name: "{% trans 'Nombre' %}",
+        available: "{% trans 'Disponible' %}",
+        price: "{% trans 'Precio' %}",
+        min_price: "{% trans 'Precio mínimo' %}",
+        max_price: "{% trans 'Precio máximo' %}",
+        cost: "{% trans 'Costo' %}",
+    }
+
+
 </script>
+<!-- <script src="/static/js/apps/components.js"></script> -->
 <script src="/static/js/apps/document-form-app.js"></script>
 {% endblock content %}

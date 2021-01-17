@@ -1,7 +1,9 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.utils.translation import gettext as _
 from django.views import generic
+from django.http import JsonResponse
 
+from unoletutils.libs import text
 from unoletutils.views import (ListView, DetailView, UpdateView, CreateView, 
     DeleteView, TemplateView)
 from .models import (Item, ItemFamily, ItemGroup, Movement)
@@ -42,3 +44,26 @@ class ItemListView(ListView):
         "get_available": "text-end",
     }
     
+
+# Json views.
+
+def item_list_jsonview(request, company: int) -> JsonResponse:
+    """Obtiene un listado de artículos filtrados por el parámetro 'q' en URL."""
+
+    qs = Item.active_objects.all()
+
+    if request.GET.get("q"):
+        qs = qs.filter(tags__icontains=text.Text.get_tag(request.GET["q"]))
+
+    item_list = list(qs.values(
+        "id", "code", "codename", "name", "description", 
+        "group_id", "group__name",
+        "family_id", "family__name",
+        "tax_id", "tax__name", "tax__value", "tax__value_type",
+        "min_price", "max_price", "available",
+        "is_active"
+    ))
+
+    return JsonResponse({"data": {"items": item_list, "count": qs.count()}})
+
+
