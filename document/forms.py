@@ -66,7 +66,7 @@ class DocumentForm(ModelForm):
                 url=reverse_lazy("finance-autocomplete-currency", 
                 kwargs={"company": self.company.pk})))
 
-        self.fields["note"].widget = forms.Textarea()
+        self.fields["note"].widget = forms.Textarea(attrs={"rows": 2})
 
 
 class DocumentPurchaseForm(DocumentForm):

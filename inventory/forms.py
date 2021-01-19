@@ -15,11 +15,14 @@ class ItemForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        #if not self.instance.pk:
-        #    self.instance.company = self.company
 
-        #self.fields["company"].queryset = Company.objects.filter(pk=self.company.pk)
-        #self.fields["company"].initial = self.company
-        #self.fields["company"].disabled = True
+class MovementForm(ModelForm):
+    """Formulario para movimientos."""
 
-        
+    class Meta:
+        model = Movement
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+

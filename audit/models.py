@@ -5,6 +5,9 @@ from simple_history import register
 from user.models import User
 from company.models import Company
 from warehouse.models import Warehouse
+from document.models import DocumentType, Document
+from person.models import Person, IdentificationType
+from inventory.models import Item, ItemGroup, ItemFamily, Movement
 
 
 
@@ -19,3 +22,11 @@ from warehouse.models import Warehouse
 register(User, app=__package__)
 register(Company, app=__package__)
 register(Warehouse, app=__package__)
+register(DocumentType, app=__package__)
+register(Document, app=__package__)
+register(Item, app=__package__)
+register(ItemGroup, app=__package__)
+register(ItemFamily, app=__package__)
+register(Movement, app=__package__)
+register(Person, app=__package__)
+register(IdentificationType, app=__package__)

@@ -83,7 +83,9 @@ class User(AbstractUser):
 
         Parameters:
             permission (company.models.CompanyPermission or str or iter): 
-            permiso que desea comprobar.
+            permiso que desea comprobar. Los que se evalua es el campo codename
+            del permiso, y este campo tiene esta estructura:
+                [app_label].[action]_[model_name] = 'user.add_user'.
 
             company (company.models.Company): empresa donde se supone que debe
             tener el permiso dicho usuario.

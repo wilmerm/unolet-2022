@@ -1,0 +1,27 @@
+{% load i18n %}
+{% load tz %}
+{% load base %}
+<!-- history -->
+<div class="p-2 bg-white border {{ extra_classes }}">
+    <h3>{% svg 'clock-history' %} {{ title }}</h3>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th class="text-start">{% trans 'Fecha' %}</th>
+                <th class="text-start">{% trans 'Usuario' %}</th>
+                <th class="text-end">{% trans 'Acción' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in object.get_history %}
+            <tr title="{{ obj.history_change_reason }}">
+                <td>{{ obj.history_date }}</td>
+                <td>{{ obj.history_user }}</td>
+                <td class="text-end">{{ obj.history_type|to_html }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+<!-- End history -->

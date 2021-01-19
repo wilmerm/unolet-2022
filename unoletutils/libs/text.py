@@ -86,6 +86,7 @@ class Text(number.Number):
         # De ninguna forma están permitidos estos caráctes que eliminaremos.
         # Esto es porque podría causar problemas utilizandolo dentro de otros
         # strings, consultas SQL y/o otros lenguales de programación.
+        t = " ".join(t.split())
         t = t.replace("/", " ").replace("\\", " ").replace("'", "")
         t = t.replace('"', '').replace("$", "").replace("\n", " ")
 
@@ -193,7 +194,7 @@ class Text(number.Number):
         return out
 
     @classmethod
-    def permutations(self, iterable: iter, r: int=2, split: str=" ") -> str:
+    def permutations(cls, iterable: iter, r: int=2, split: str=" ") -> str:
         """
         Devuelve permutaciones de longitud r sucesivas de elementos en el 
         iterable.
@@ -219,7 +220,10 @@ class Text(number.Number):
             str: Una cadena de texto separada por el valor del parámetro 'split'.
         """
         if isinstance(iterable, str):
-            iterable = iterable.split(split)
+            if split != " ":
+                iterable = iterable.split(split)
+            else:
+                iterable = iterable.split()
 
         # Cuando r es mayor a la longitud del iterable, la función
         # itertools.permutations(iterable, r), retorna una lista vacia. 

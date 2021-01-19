@@ -148,10 +148,19 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
+USE_L10N = False
 
 USE_TZ = True
 
+
+USE_THOUSAND_SEPARATOR = True
+THOUSAND_SEPARATOR = ","
+DECIMAL_SEPARATOR = "."
+
+DATE_FORMAT = "d/m/Y"
+DATETIME_FORMAT = "d/m/Y P"
+SHORT_DATE_FORMAT = DATE_FORMAT
+SHORT_DATETIME_FORMAT = DATETIME_FORMAT
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/

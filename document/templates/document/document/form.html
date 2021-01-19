@@ -16,28 +16,28 @@
                 <form action="" method="POST"> {% csrf_token %}
                     {% bootstrap_form_errors form %}
                     <div class="row">
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6 col-md-4">
                             {% if form.warehouse %}{% bootstrap_field form.warehouse %}{% endif %}
                         </div>
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6 col-md-4">
                             {% if form.transfer_warehouse %}{% bootstrap_field form.transfer_warehouse %}{% endif %}
                         </div>
                     </div>
                     <hr>
                     <div class="row">
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6 col-md-4">
                             {% if form.doctype %}{% bootstrap_field form.doctype %}{% endif %}
                         </div>
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6 col-md-4">
                             {% if form.number %}{% bootstrap_field form.number %}{% endif %}
                         </div>
                     </div>
                     <hr>
                     <div class="row">
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6">
                             {% if form.person %}{% bootstrap_field form.person %}{% endif %}
                         </div>
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6">
                             {% if form.person_name %}{% bootstrap_field form.person_name %}{% endif %}
                         </div>
                     </div>
@@ -66,11 +66,12 @@
                     <div>
                         <input class="btn btn-success" type="submit" value="{% trans 'Guardar' %}">
                     </div>
+                    {{ form.media }}
                 </form>
             </div>
-            <div class="col col-12 col-md-4 border bg-white">
+            <div class="col col-12 col-md-4">
                 <!--  -->
-                
+                {% history object extra_classes="shadow-sm" %}
             </div>
         </div>
     </div>
@@ -89,7 +90,7 @@
             <thead>
                 <tr>
                     <th></th>
-                    <th></th>
+                    <th><input type="checkbox"></th>
                     <th>{% trans 'No.' %}</th>
                     <th>{% trans 'Referencia' %}</th>
                     <th>{% trans 'Nombre' %}</th>
@@ -103,10 +104,10 @@
             <tbody>
                 <tr v-for="obj in movements">
                     <td>
-                        <a href="#" class="py-0 px-1">{% svg 'pencil-fill' size='1rem' %}</a>
-                        <a href="#" class="py-0 px-1">{% svg 'x-circle-fill' size='1rem' %}</a>
+                        <a @click="onEditMovement(obj)" class="py-0 px-1">{% svg 'pencil-fill' size='1rem' fill="var(--warning)" %}</a>
+                        <a class="py-0 px-1">{% svg 'x-circle-fill' size='1rem' fill="var(--danger)" %}</a>
                     </td>
-                    <td><input type="checkbox"></td>
+                    <td class="text-center"><input type="checkbox"></td>
                     <td>{% vue 'obj.number' %}</td>
                     <td>{% vue 'obj.item__codename' %}</td>
                     <td>{% vue 'obj.name' %}</td>
@@ -117,7 +118,7 @@
                     <td class="text-end">{% vue 'intcomma(obj.total)' %}</td>
                 </tr>
             </tbody>
-            <tfoot v-if="totals">
+            <tfoot v-if="totals" class="fw-bold">
                 <td colspan="7">{% vue 'totals.count' %} {% trans 'registro(s)' %}</td>
                 <td class="text-end">{% vue 'intcomma(totals.discount)' %}</td>
                 <td class="text-end">{% vue 'intcomma(totals.tax)' %}</td>
@@ -134,14 +135,40 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <item-search></item-search>
+                    <!-- Item search. -->
+                    <div>
+                        <input type="search" v-model="search.text" class="form-control" placeholder="..." v-on:input="onSearch">
+                        <table v-if="search.count" class="table table-sm table-hover mt-1">
+                            <thead>
+                                <th class="text-start">{% trans 'Nombre' %}</th>
+                                <th class="text-end">{% trans 'Precio' %}</th>
+                                <th class="text-end">{% trans 'Disponible' %}</th>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in search.items" :id="'item-'+item.id" v-on:click="onSelect(item)">
+                                    <td>{% vue 'item.codename' %} | {% vue 'item.name' %}</td>
+                                    <td class="text-end">{% vue 'item.max_price' %}</td>
+                                    <td class="text-end">{% vue 'item.available' %}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <ul v-if="errors.item" class="errorlist">
+                            <li v-for="error in errors.item" class="text-danger small">{% vue 'error.message' %}</li>
+                        </ul>
+                    </div>
+                    <!-- {# Movement form. #}-->
                     <div class="container-fluid">
+                        <!-- {# Global errores. #} -->
+                        <ul v-if="errors.global" class="errorlist">
+                            <li v-for="error in errors.global" class="text-danger small">{% vue 'error.message' %}</li>
+                        </ul>
+                        <!-- {# End Global errores. #} -->
                         <input type="number" id="id_movement_id" v-model="movement.id">
                         <input type="number" id="id_movement_item_id" v-model="movement.item_id">
                         <div class="row">
                             <div class="col col-12 col-sm-4 col-md-4 col-lg-4">
                                 <label class="w-100">{% trans 'Referencia' %}
-                                    <input type="text" v-model="movement.item__codename" class="form-control">
+                                    <input type="text" v-model="movement.item__codename" class="form-control" readonly>
                                 </label>
                             </div>
                             <div class="col col-12 col-sm-8 col-md-8 col-lg-8">
@@ -151,29 +178,35 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Cantidad' %}
-                                    <input type="number" v-model="movement.quantity" class="form-control">
+                                    <input type="number" v-model="movement.quantity" class="form-control" min="0">
                                 </label>
+                                <ul v-if="errors.quantity" class="errorlist">
+                                    <li v-for="error in errors.quantity" class="text-danger small">{% vue 'error.message' %}</li>
+                                </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Disponible' %}
-                                    <input type="number" v-model="movement.available" class="form-control">
+                                    <input type="number" v-model="movement.available" class="form-control" readonly>
                                 </label>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Precio' %}
-                                    <input type="number" v-model="movement.price" class="form-control">
+                                    <input type="number" v-model="movement.price" class="form-control" min="0">
                                 </label>
+                                <ul v-if="errors.price" class="errorlist">
+                                    <li v-for="error in errors.price" class="text-danger small">{% vue 'error.message' %}</li>
+                                </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Precio mínimo' %}
-                                    <input type="number" v-model="movement.min_price" class="form-control">
+                                    <input type="number" v-model="movement.min_price" class="form-control" readonly>
                                 </label>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <div class="form-check" title="{% trans 'Indica que el impuesto ya está incluido en el monto (precio) especificado, entonces se extraerá el impuesto del monto indicado (si aplica).' %}">
                                     <label class="w-100 form-check-label">{% trans 'Impuesto ya incluido' %}
                                         <input type="checkbox" v-model="movement.tax_already_included" class="form-check-input">
@@ -183,26 +216,32 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Descuento %' %}
-                                    <input type="number" v-model="movement.discount_percent" class="form-control">
+                                    <input type="number" v-model="movement.discount_percent" class="form-control" min="0">
                                 </label>
+                                <ul v-if="errors.discount" class="errorlist">
+                                    <li v-for="error in errors.discount" class="text-danger small">{% vue 'error.message' %}</li>
+                                </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Descuento total' %}
-                                    <input type="number" v-model="movement.discount" class="form-control">
+                                    <input type="number" v-model="movement.discount" class="form-control" readonly>
                                 </label>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Impuesto' %}
-                                    <input type="number" v-model="movement.tax" class="form-control">
+                                    <input type="number" v-model="movement.tax" class="form-control" readonly>
                                 </label>
+                                <ul v-if="errors.text-danger" class="errorlist">
+                                    <li v-for="error in errors.tax" class="text-danger small">{% vue 'error.message' %}</li>
+                                </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3 col-lg-2">
+                            <div class="col col-6 col-sm-4 col-md-3">
                                 <label class="w-100">{% trans 'Total' %}
-                                    <input type="number" v-model="movement.total" class="form-control">
+                                    <input type="number" v-model="movement.total" class="form-control" readonly>
                                 </label>
                             </div>
                         </div>
@@ -210,18 +249,23 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cerrar' %}</button>
-                    <button type="button" class="btn btn-primary">{% trans 'Guardar' %}</button>
+                    <button type="submit" class="btn btn-primary" @click="onSaveMovement">{% trans 'Guardar' %}</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="/static/external/axios/axios.min.js"></script>
 <script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
 <script>
+
+    const DOCUMENT_PK = "{{ object.pk }}";
+
     const URLS = {
         document_document_movement_list_json: "{% if object.pk %}{% url 'document-document-movement-list-json' company=company.pk document=object.pk %}{% endif %}",
         inventory_item_list_json: "{% url 'inventory-item-list-json' company=company.pk %}",
+        inventory_movement_form_json: "{% url 'inventory-movement-form-json' company=company.pk document=object.pk %}",
     }
 
     const TITLES = {
@@ -233,6 +277,7 @@
         cost: "{% trans 'Costo' %}",
     }
 
+    const CSRF_TOKEN = "{{ csrf_token }}";
 
 </script>
 <!-- <script src="/static/js/apps/components.js"></script> -->

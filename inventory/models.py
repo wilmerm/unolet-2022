@@ -152,11 +152,19 @@ class Item(utils.ModelBase):
         if self.family:
             if self.family.company != self.company:
                 self.family = None
+
+    def update_tags(self):
+        """Actualiza el valor del campo 'tags'."""
+        self.tags = self.get_tags(self.code, self.codename, self.name, 
+            self.group or "", self.family or "", combinate=True)
+        self.tags += self.get_tag(self.description, combinate=True)
+        self.tags = self.tags[:700]
     
     def save(self, *args, **kwargs):
         if not self.pk:
             self.code = self._get_next_code(self.company)
         self.codename = " ".join(self.codename.split()).upper()
+        self.update_tags()
         return super().save(*args, **kwargs)
 
     def get_available(self, warehouse=None):

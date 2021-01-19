@@ -14,7 +14,7 @@ class WarehouseAdmin(admin.ModelAdmin):
 
 @admin.register(CompanyPermission)
 class CompanyPermissionAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ("codename",)
 
 
 @admin.register(CompanyPermissionGroup)

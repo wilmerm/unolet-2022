@@ -17,3 +17,5 @@ ALLOWED_HOSTS = ["*"]
 MEDIA_ROOT = MEDIA_ROOT / NAME
 
 SITE_ID = 1
+
+TIME_ZONE = 'America/Santo_Domingo'

@@ -2,6 +2,7 @@ from django import template
 from django.conf import settings
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 from django.db import models
 from django.urls import reverse, NoReverseMatch
 
@@ -28,8 +29,32 @@ def to_html(value):
         return format_html('<span class="text-danger">{}<span>', "⛔")
     if value in (None, ""):
         return ""
+    if value == "+":
+        return format_html(icons.svg("plus-circle-fill", fill="var(--success)")["svg"])
+    if value == "~":
+        return format_html(icons.svg("pencil-fill", fill="var(--warning)")["svg"])
+    if value == "-":
+        return format_html(icons.svg("dash-circle-fill", fill="var(--danger)")["svg"])
     if isinstance(value, dict):
         return dict_to_ul(value)
+    return readable(value)
+
+
+@register.filter
+def readable(value):
+    """Convierte el valor a un texto que sea leíble para un humano."""
+    if value is True:
+        return _("si")
+    if value is False:
+        return _("no")
+    if value in (None, ""):
+        return ""
+    if value == "+":
+        return _("creó")
+    if value == "~":
+        return _("modificó")
+    if value == "-":
+        return _("eliminó")
     return value
 
 
@@ -59,6 +84,12 @@ def vue(value: str) -> str:
 def vue(value: str) -> str:
     """Encierra el valor en doble llaves 'value' -> '{{ value }}'."""
     return "{{ %s }}" % value
+
+
+@register.inclusion_tag("tags/history.html")
+def history(obj, title=_l("Historial de cambios"), extra_classes=""):
+    """Muestra el historial de cambios del objeto indicado."""
+    return {"object": obj, "title": title, "extra_classes": extra_classes}
 
     
 @register.inclusion_tag("tags/icon.svg")
