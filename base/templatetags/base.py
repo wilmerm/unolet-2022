@@ -157,7 +157,8 @@ def list_action_links_for_object(*objs, defaults="detail update delete", **optio
     size = options.get("size", "1rem")
     for obj in objs:
         try:
-            action_links = obj.get_actions_links(defaults=defaults.split(), size=size)
+            action_links = obj.get_actions_links(
+                defaults=defaults.split(), size=size)
         except (AttributeError):
             action_links = {}
     return {"action_links": action_links, "obj": obj, "size": size}
@@ -169,19 +170,23 @@ def detail_field(request=None, name="", value="", url=""):
 
 
 @register.inclusion_tag("tags/create_button.html")
-def create_button(request, obj=None, model=None, size="1rem"):
-    url_name_list = request.resolver_match.url_name.split("-")
-    if not url_name_list:
-        return {}
-    if url_name_list[-1] in ["create", "detail", "update", "delete", "list", "index"]:
-        url_name = "-".join(url_name_list[:-1] + ["create"])
+def create_button(request, obj=None, model=None, size="1rem", url=None):
 
     company = request.company
 
-    try:
-        url = reverse(url_name, kwargs={"company": company.pk})
-    except (NoReverseMatch):
-        return {}
+    if url == None:
+        url_name_list = request.resolver_match.url_name.split("-")
+
+        if not url_name_list:
+            return {}
+
+        if url_name_list[-1] in ["create", "detail", "update", "delete", "list", "index"]:
+            url_name = "-".join(url_name_list[:-1] + ["create"])
+
+        try:
+            url = reverse(url_name, kwargs={"company": company.pk})
+        except (NoReverseMatch):
+            return {}
     
     return {"url": url, "size": size, "request": request, "company": company}
 

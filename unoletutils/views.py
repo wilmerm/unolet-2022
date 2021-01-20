@@ -251,7 +251,7 @@ class UpdateView(BaseForm, generic.UpdateView):
 
 
 class DeleteView(BaseView, generic.DeleteView):
-    pass
+    template_name = "base/confirm_delete.html"
 
 
 class TemplateView(BaseView, generic.TemplateView):

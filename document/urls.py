@@ -7,21 +7,50 @@ from document.models import DocumentType
 urlpatterns = [
     path("", views.Index.as_view(), name="document-index"),
 
+    path("document/<str:generictype>/create/", 
+    views.DocumentCreateView.as_view(), name="document-document-create"),
+
+    path("document/<str:generictype>/list/", 
+    views.DocumentListView.as_view(), name="document-document-list"),
+
+    #path("document/<str:generictype>/<int:pk>/", 
+    #views.DocumentDetailView.as_view(), name="document-document-detail"),
+
+    path("document/<str:generictype>/<int:pk>/update/", 
+    views.DocumentUpdateView.as_view(), name="document-document-update"),
+
+    path("document/<str:generictype>/<int:pk>/delete/", 
+    views.DocumentDeleteView.as_view(), name="document-document-delete"),
+
     # Json views.
 
-    path("json/document/<int:document>/movement/list/", 
-    views.document_movements_jsonview, 
-    name="document-document-movement-list-json"),
+    path("api/document/<int:document>/", 
+    views.document_detail_jsonview, 
+    name="api-document-document-detail"),
+
+    path("api/document/<int:document>/documentnote/create/", 
+    views.document_note_create_jsonview, 
+    name="api-document-document-documentnote-create"),
+
+    path("api/document/<int:document>/documentnote/list/", 
+    views.document_note_list_jsonview, 
+    name="api-document-document-documentnote-list"),
+
+    path("api/document/<int:document>/documentnote/delete/", 
+    views.document_note_delete_jsonview, 
+    name="api-document-document-documentnote-delete"),
 
     # django-autocomplete-light.
 
-    path("json/documenttype/<str:generictype>/list/", 
+    path("autocomplete/documenttype/<str:generictype>/list/", 
     views.DocumentTypeAutocompleteView.as_view(),
     name="document-autocomplete-documenttype"),
 ]
 
 
-# Creamos los path de forma dinámica para cada tipo genérico de documento.
+# Creamos los path de forma dinámica para cada tipo genérico de documento, 
+# para ser utilizado cuando se conoce el tipo genérico por anticipado.
+# Útil por ejemplo para ser usado en la definición de módulos.
 
 for generictype, verbose_name in DocumentType.GENERIC_TYPE_CHOICES:
     try:

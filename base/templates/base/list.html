@@ -25,7 +25,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for obj_cap in view.object_list %}
+                {% for obj_capsule in view.object_list %}
                 <tr>
                     <td class="text-center text-truncate"><input type="checkbox" name="" id="check-item-{{ obj.id }}"></td>
                     <td class="text-center text-truncate">
@@ -33,16 +33,16 @@
                             <img src="{{ obj.get_img }}" alt="" style="width: 1rem; height: auto; margin-right: 0.5rem;">
                         </a>
                     </td>
-                        {% for attname, item in obj_cap.get_values.items %}
+                        {% for attname, item in obj_capsule.get_values.items %}
                             {% if attname in view.list_display_links %}
                                 <td class="text-truncate {{ item.cssclass }}">
-                                    <a href="{{ obj_cap.get_absolute_url }}">{{ item.value|to_html }}</a>
+                                    <a href="{{ obj_capsule.get_absolute_url }}">{{ item.value|to_html }}</a>
                                 </td>
                             {% else %}
                                 <td class="text-truncate {{ item.cssclass }}">{{ item.value|to_html }}</td>
                             {% endif %}
                         {% endfor %}
-                    <td class="text-center text-truncate">{% list_action_links_for_object obj_cap size="1rem" %}</td>
+                    <td class="text-center text-truncate">{% list_action_links_for_object obj_capsule size="1rem" %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

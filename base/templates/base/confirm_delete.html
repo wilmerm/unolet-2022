@@ -1,0 +1,18 @@
+{% extends 'base/base.html' %}
+{% load i18n %}
+
+
+{% block content %}
+<div class="container">
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="alert alert-danger shadow-sm">
+            <h1>{% svg 'trash' fill="var(--danger)" %} {% trans 'Confirmar la eliminación de ' %}{{ object }}</h1>
+            <hr>
+            <p>{% trans '¿Realmente desea eliminar este registro?' %}</p>
+            <input class="btn btn-danger" type="submit" value="{% trans 'Eliminar' %}" />
+            <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans 'Cancelar' %}</a>
+        </div>
+    </form>
+</div>
+{% endblock content %}

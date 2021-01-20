@@ -17,11 +17,11 @@ urlpatterns = [
 
     # Json views.
 
-    path("json/item/list/", views.item_list_jsonview, 
-    name="inventory-item-list-json"),
+    path("api/item/list/", views.item_list_jsonview, 
+    name="api-inventory-item-list"),
 
-    path("json/movement/<int:document>/form/", views.movement_form_jsonview, 
-    name="inventory-movement-form-json"),
+    path("api/movement/<int:document>/form/", views.movement_form_jsonview, 
+    name="api-inventory-movement-form"),
 
 
 

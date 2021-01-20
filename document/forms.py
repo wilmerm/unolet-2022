@@ -68,6 +68,15 @@ class DocumentForm(ModelForm):
 
         self.fields["note"].widget = forms.Textarea(attrs={"rows": 2})
 
+        # Cuando es una modificación, algunos campos no se podrán modificar.
+        if self.instance.pk:
+            self.fields["warehouse"].disabled = True
+            self.fields["transfer_warehouse"].disabled = True
+            self.fields["doctype"].disabled = True
+            self.fields["number"].disabled = True
+            self.fields["person"].disabled = True
+            self.fields["currency"].disabled = True
+
 
 class DocumentPurchaseForm(DocumentForm):
     """Formulario para documentos de compra."""

@@ -66,14 +66,14 @@ class DocumentModelTest(BaseTestCase):
         strout = "{}-{:0>12}".format(self.document.doctype, self.document.number)
         self.assertEqual(strout, str(self.document))
     
-    def test_next_number(self):
-        """El número debe ser secuencial y único para cada tipo de documento."""
-        nextn = self.document.get_next_number_for_type(self.document.doctype)
+    def test_next_sequence(self):
+        """la secuencia debe ser única para cada tipo de documento."""
+        nextn = self.document.get_next_sequence_for_type(self.document.doctype)
         self.assertEqual(nextn, 2)
         document_2 = self.document
-        document_2.number = 50007
+        document_2.sequence = 50007
         document_2.save()
-        nextn = self.document.get_next_number_for_type(self.document.doctype)
+        nextn = self.document.get_next_sequence_for_type(self.document.doctype)
         self.assertEqual(nextn, 50008)
         self.test_str_method(document_2, "TEST-000000050007")
 
@@ -124,13 +124,6 @@ class DocumentModelTest(BaseTestCase):
         balance = mov.get_amount_with_discount() + tax_value
         # Nota: convertimos a float porque hemos recibido tipos diferentes.
         self.assertEqual(float(balance), float(document.get_balance()))
-
-        
-        
-
-
-        
-    
 
     
 class DocumentTypeTest(BaseTestCase):

@@ -98,7 +98,7 @@
         </aside>
         <div id="section-main" class="col col-12 col-sm-12 col-md-9 col-lg-10 h-100 px-0">
             {% block frame_right %}
-            <aside class="border-bottom container-fluid py-2">
+            <aside class="border-bottom container-fluid py-2 bg-white shadow-sm">
                 {% block frame_right_top %}
                 <div class="row">
                     <div class="col col-12 col-sm-8">
@@ -112,11 +112,10 @@
                 </div>
                 {% endblock %}
             </aside>
-            <main class="pt-2 pb-1" style="height: 600px; overflow: scroll;">
+            <main class="pt-3 pb-1" style="height: 600px; overflow: scroll;">
 
                 <div class="container">{% bootstrap_messages request %}</div>
                 
-
                 {% block content %}
                 {% endblock content %}
 

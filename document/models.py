@@ -185,7 +185,9 @@ class Document(utils.ModelBase):
     doctype = models.ForeignKey(DocumentType, on_delete=models.PROTECT,
     verbose_name=_l("tipo"))
 
-    number = models.IntegerField(_l("número"), editable=False)
+    sequence = models.IntegerField(_l("secuencia"), editable=False, null=True)
+
+    number = models.CharField(_l("número"), max_length=30, blank=True)
 
     person = models.ForeignKey("person.Person", on_delete=models.PROTECT, 
     null=True, blank=True, verbose_name=_l("persona"))
@@ -231,6 +233,8 @@ class Document(utils.ModelBase):
     create_date = models.DateTimeField(_l("fecha de creación"), 
     auto_now_add=True)
 
+    # Manejadores.
+
     objects = models.Manager()
 
     # Documentos que afectan el inventario como entrada.
@@ -246,30 +250,44 @@ class Document(utils.ModelBase):
         verbose_name = _l("documento")
         verbose_name_plural = _l("documentos")
         constraints = [
-            models.UniqueConstraint(fields=("doctype", "number"), 
-                name="unique_doctype_number")
+            models.UniqueConstraint(fields=("doctype", "sequence"), 
+                name="unique_document_doctype_sequence")
         ]
 
     def __str__(self):
         return self.get_number()
-    
-    def get_next_number_for_type(self, doctype=None):
-        """Obtiene el siguiente número para el tipo de documento indicado."""
-        try:
-            mx = Document.objects.filter(doctype=doctype).order_by("-number")[0]
-        except (IndexError):
-            return 1
-        return mx.number + 1
 
-    def get_absolute_url(self):
-        path = f"document-document-{self.doctype.generic_type}-update"
-        return reverse_lazy(path, 
-            kwargs={"company": self.doctype.company.pk, "pk": self.pk})
+    def get_reverse_kwargs(self):
+        """Obtiene el diccionario para construir la URL con reverse."""
+        print("hola")
+        return {
+            "company": self.doctype.company.pk,
+            "generictype": self.doctype.generic_type, "pk": self.pk}
+
+    def get_absolute_url(self, mode="update"):
+        return reverse_lazy(f"document-document-{mode}", 
+            kwargs=self.get_reverse_kwargs())
+
+    def get_detail_url(self):
+        return self.get_absolute_url("detail")
+
+    def get_update_url(self):
+        return self.get_absolute_url("update")
+    
+    def get_delete_url(self):
+        return self.get_absolute_url("delete")
+
+    def get_create_url(self):
+        kwargs = self.get_reverse_kwargs()
+        kwargs.pop("pk")
+        return reverse_lazy("document-document-create", kwargs=kwargs)
+
+    def get_list_url(self):
+        kwargs = self.get_reverse_kwargs()
+        kwargs.pop("pk")
+        return reverse_lazy("document-document-list", kwargs=kwargs)
 
     def clean(self):
-        if not self.pk:
-            self.number = self.get_next_number_for_type(self.doctype)
-
         self.validate_transfer_warehouse()
 
     def validate_transfer_warehouse(self):
@@ -289,7 +307,12 @@ class Document(utils.ModelBase):
     
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.number = self.get_next_number_for_type(self.doctype)
+            self.sequence = self.get_next_sequence_for_type(self.doctype)
+            if not self.number:
+                self.number = "{:0>12}".format(self.sequence)
+
+            if not self.person_name:
+                self.person_name = str(self.person)
         
         if self.currency_rate == None:
             self.currency_rate = self.currency.rate or 1
@@ -324,19 +347,34 @@ class Document(utils.ModelBase):
             out["updated"] = True
 
         return out
-
-    def get_number(self, doctype=None, number=None) -> str:
-        """Contruye y obtiene el número vísible del documento con su tipo."""
+    
+    def get_number(self, doctype=None, sequence=None) -> str:
+        """Contruye y obtiene el número visible del documento con su tipo."""
         doctype = doctype or getattr(self, "doctype", None)
-        number = number or getattr(self, "number", "")
+        sequence = sequence or getattr(self, "sequence", "")
 
-        if doctype and number:
-            return "{}-{:0>12}".format(doctype, number)
+        if doctype and sequence:
+            return "{}-{:0>12}".format(doctype, sequence)
         elif doctype:
             return "{}-{:0>12}".format(doctype, 
-                self.get_next_number_for_type(doctype))
+                self.get_next_sequence_for_type(doctype))
         else:
-            return "{:0>12}".format(number)
+            return "{:0>12}".format(sequence)
+
+    @classmethod
+    def get_next_sequence_for_type(cls, doctype=None):
+        """Obtiene la siguiente secuencia para el tipo de documento indicado."""
+        try:
+            mx = Document.objects.filter(
+                doctype=doctype).order_by("-sequence")[0]
+        except (IndexError):
+            return 1
+        
+        if mx.sequence == None:
+            mx.sequence = 1
+            mx.number = "{:0>12}".format(1)
+            mx.save()
+        return mx.sequence + 1
 
     def get_person_name(self):
         return str(self.person or self.person_name)
@@ -371,3 +409,45 @@ class Document(utils.ModelBase):
         return self.transaction_set.all()
 
 
+class DocumentNote(utils.ModelBase):
+    """
+    Notas que se agregarán a los documentos como comentarios de los usuarios.
+    
+    En estas notas podrán especificar, por ejemplo, por qué se modifica el 
+    documento, etc.
+    """ 
+    company = None # La empresa será la misma del documento al que pertenece.
+    tags = None
+
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, 
+    verbose_name=_l("documento"))
+
+    create_user = models.ForeignKey("user.User", on_delete=models.SET_NULL, 
+    null=True)
+
+    create_date = models.DateTimeField(_l("fecha"), auto_now_add=True)
+
+    # El usuario podrá ser eliminado, y la relación romperse, pero esta nota 
+    # seguirá existiendo con el nombre de usuario puesto en este campo.
+    username = models.CharField(_l("nombre de usuario"), max_length=100, 
+    blank=True, editable=False)
+
+    content = models.CharField(_l("contenido"), max_length=200)
+
+    class Meta:
+        verbose_name = _l("nota")
+        verbose_name_plural = _l("notas")
+        ordering = ["-create_date"]
+
+    def __str__(self):
+        if len(self.content) > 30:
+            return "{}...".format(self.content[:30])
+        return self.content
+
+    def clean(self):
+        self.content = self.strip(self.content)
+
+    def save(self, *args, **kwargs):
+        if not self.username:
+            self.username = str(self.create_user)
+        return super().save(*args, **kwargs)

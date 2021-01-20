@@ -9,13 +9,12 @@
 
     <button-counter></button-counter>
 
-
     <div class="container-fluid">
         <div class="row">
-            <div class="col col-12 col-md-8">
+            <div class="col col-12 col-md-7">
                 <form action="" method="POST"> {% csrf_token %}
                     {% bootstrap_form_errors form %}
-                    <div class="row">
+                    <div class="row border-bottom p-1">
                         <div class="col col-12 col-sm-6 col-md-4">
                             {% if form.warehouse %}{% bootstrap_field form.warehouse %}{% endif %}
                         </div>
@@ -23,8 +22,8 @@
                             {% if form.transfer_warehouse %}{% bootstrap_field form.transfer_warehouse %}{% endif %}
                         </div>
                     </div>
-                    <hr>
-                    <div class="row">
+                    
+                    <div class="row border-bottom p-1">
                         <div class="col col-12 col-sm-6 col-md-4">
                             {% if form.doctype %}{% bootstrap_field form.doctype %}{% endif %}
                         </div>
@@ -32,55 +31,68 @@
                             {% if form.number %}{% bootstrap_field form.number %}{% endif %}
                         </div>
                     </div>
-                    <hr>
-                    <div class="row">
+                    
+                    <div class="row border-bottom p-1">
                         <div class="col col-12 col-sm-6">
                             {% if form.person %}{% bootstrap_field form.person %}{% endif %}
                         </div>
                         <div class="col col-12 col-sm-6">
-                            {% if form.person_name %}{% bootstrap_field form.person_name %}{% endif %}
+                            {% if form.person_name %}{% bootstrap_field form.person_name  %}{% endif %}
                         </div>
                     </div>
-                    <hr>
-                    <div class="row">
+                    
+                    <div class="row border-bottom p-1">
                         <div class="col col- col-sm-6 col-md-4 col-lg-3">
                             {% if form.currency %}{% bootstrap_field form.currency %}{% endif %}
                         </div>
                         <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
                             {% if form.currency_rate %}{% bootstrap_field form.currency_rate %}{% endif %}
                         </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-4">
                             {% if form.pay_taxes %}{% bootstrap_field form.pay_taxes %}{% endif %}
                         </div>
                     </div>
-                    <hr>
-                    <div class="row">
+                    
+                    <div class="row p-1">
                         <div class="col col-12">
                             {% if form.note %}{% bootstrap_field form.note %}{% endif %}
                         </div>
                     </div>
                     <hr>
                     <div>
-                        <input class="btn btn-success" type="submit" value="{% trans 'Guardar' %}">
+                        <input class="btn btn-success me-1" type="submit" value="{% trans 'Guardar' %}">
+                        {% if object.pk %}
+                        <a class="btn btn-danger" href="{{ object.get_delete_url }}">{% trans 'Eliminar' %}</a>
+                        {% endif %}
                     </div>
                     {{ form.media }}
                 </form>
             </div>
-            <div class="col col-12 col-md-4">
+            <div class="col col-12 col-md-5">
                 <!--  -->
                 {% history object extra_classes="shadow-sm" %}
+                <hr>
+                <div class="container-fluid border p-3 bg-white shadow-sm" style="max-height: 512px; overflow: auto;">
+                    <textarea v-model="content_new_note" class="form-control mb-1" cols="30" rows="2" placeholder="{% trans 'Nueva nota...' %}"></textarea>
+                    <button @click="onAddNote" class="btn btn-secondary btn-sm w-100">{% trans 'Enviar nota' %}</button>
+                    <hr>
+                    <div v-for="note in notes" class="alert alert-light alert-dismissible fade show border shadow-sm my-1">
+                        {% vue 'note.content' %}
+                        <div><small class="text-muted"><b>{% vue 'note.username' %} </b> | <span>{% vue 'note.create_date' %}</span></small></div>
+                        <button v-if="note.create_user == USER_ID" @click="onDeleteNote(note.id)" type="button" class="btn-close" aria-label="Delete" title="{% trans 'Eliminar' %}"></button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <hr>
     <div class="row">
-        <div class="col col-8"><h2>{% trans 'Movimientos' %}</h2></div>
-        <div class="col col-4 text-end">
+        <div class="col col-8">
+            <h2>{% trans 'Movimientos' %}</h2>
+        </div>
+        <div class="col col-4 text-end pb-2">
             <!-- Button trigger modal -->
-            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#movement-add-modal">
+            <button type="button" class="btn btn-primary" @click="onAddMovement">
                 {% svg 'plus-circle-fill' %} {% trans 'Nuevo movimiento' %}
             </button>
         </div>
@@ -254,18 +266,40 @@
             </div>
         </div>
     </div>
+    <!-- End Movement modal. -->
+    <!-- Message Modal. -->
+    <div class="modal" id="message-modal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{% vue 'message.title' %}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p>{% vue 'message.content' %}</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cerrar' %}</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    <!-- End Message Modal. -->
 </div>
 
 <script src="/static/external/axios/axios.min.js"></script>
 <script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
 <script>
-
     const DOCUMENT_PK = "{{ object.pk }}";
 
     const URLS = {
-        document_document_movement_list_json: "{% if object.pk %}{% url 'document-document-movement-list-json' company=company.pk document=object.pk %}{% endif %}",
-        inventory_item_list_json: "{% url 'inventory-item-list-json' company=company.pk %}",
-        inventory_movement_form_json: "{% url 'inventory-movement-form-json' company=company.pk document=object.pk %}",
+        api_document_document_detail: "{% if object.pk %}{% url 'api-document-document-detail' company=company.pk document=object.pk %}{% endif %}",
+        api_document_document_documentnote_create: "{% if object.pk %}{% url 'api-document-document-documentnote-create' company=company.pk document=object.pk %}{% endif %}",
+        api_document_document_documentnote_list: "{% if object.pk %}{% url 'api-document-document-documentnote-list' company=company.pk document=object.pk  %}{% endif %}",
+        api_document_document_documentnote_delete: "{% if object.pk %}{% url 'api-document-document-documentnote-delete' company=company.pk document=object.pk  %}{% endif %}",
+        api_inventory_item_list: "{% url 'api-inventory-item-list' company=company.pk %}",
+        api_inventory_movement_form: "{% if object.pk %}{% url 'api-inventory-movement-form' company=company.pk document=object.pk %}{% endif %}",
+        api_finance_currency_detail: "{% url 'api-finance-currency-detail' company=company.pk %}",
     }
 
     const TITLES = {
@@ -275,9 +309,22 @@
         min_price: "{% trans 'Precio mínimo' %}",
         max_price: "{% trans 'Precio máximo' %}",
         cost: "{% trans 'Costo' %}",
+        you_must_save_the_document: "{% trans 'Debe guardar el documento.' %}",
+        you_must_save_the_document_to_add_movements: "{% trans 'Debe guardar el documento para poder añadir los movimientos.' %}",
+        write_something: "{% trans 'Escriba algo' %}",
     }
 
     const CSRF_TOKEN = "{{ csrf_token }}";
+
+    const USER_ID = "{{ user.id }}";
+
+    // Al cambiar la moneda se cambia la tasa.
+    $(document).on('change', '#id_currency', function() {
+        let id = $("#id_currency").val();
+        $.ajax({url: URLS.api_finance_currency_detail + "?id=" + id, success: function(result) {
+            $("#id_currency_rate").val(result.data.rate);
+        }});
+    });
 
 </script>
 <!-- <script src="/static/js/apps/components.js"></script> -->

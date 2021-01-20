@@ -322,7 +322,7 @@ class ModelBase(models.Model, text.Text):
         return out
 
     def get_action(self, action: str, size: str="1rem", fill: str=None) -> dict:
-        """Obtiene la acción crear."""
+        """Obtiene la acción indicada."""
 
         info = {
             "create": {

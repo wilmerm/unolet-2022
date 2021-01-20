@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import (DetailView, UpdateView, CreateView, ListView)
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
+from django.urls import reverse_lazy
 from django.http import JsonResponse, Http404
 from django.db.models import Sum, F
 from django.core import serializers
@@ -12,7 +13,7 @@ from unoletutils.libs import text
 from unoletutils.views import (UpdateView, CreateView, ListView, DetailView, 
     DeleteView, TemplateView)
 from company.models import Company
-from document.models import (Document, DocumentType)
+from document.models import (Document, DocumentType, DocumentNote)
 from document.forms import (DocumentForm, DocumentPurchaseForm, 
     DocumentInvoiceForm, DocumentInventoryInputForm, 
     DocumentInventoryOutputForm)
@@ -27,6 +28,11 @@ class Index(TemplateView):
 class BaseDocument:
     model = Document
     generictype = None
+    company_field = "doctype__company"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.generictype = kwargs.get("generictype", None)
+        return super().dispatch(request, *args, **kwargs)
 
 
 class DocumentListView(BaseDocument, ListView):
@@ -95,7 +101,7 @@ class DocumentListView(BaseDocument, ListView):
 
     generictype = None
 
-    def __setup(self, **kwargs):
+    def _setup(self, **kwargs):
         generictype = kwargs.get("generictype", self.generictype)
         self.title = self.TITLES[generictype]
         self.queryset = Document.objects.filter(doctype__generic_type=generictype)
@@ -105,15 +111,17 @@ class DocumentListView(BaseDocument, ListView):
     def dispatch(self, request, *args, **kwargs):
         # El tipo genérico de los documentos a mostrar está pasado en la url.
         # Aquí filtramos el queryset para solo esos tipos.
-        self.__setup(**kwargs)
+        self._setup(**kwargs)
         return super().dispatch(request, *args, **kwargs)
+
+    def get_create_url(self):
+        return reverse_lazy(f"document-document-create", kwargs=self.kwargs)
 
 
 class DocumentUpdateView(BaseDocument, UpdateView):
     """Modifica un documento."""
     model = Document
     form_class = DocumentForm
-    company_field = "doctype__company"
     generictype = None
 
     def get_template_names(self):
@@ -156,29 +164,21 @@ class DocumentCreateView(BaseDocument, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs["generictype"] = getattr(self, "generictype", None)
         return kwargs
+
+
+class DocumentDeleteView(BaseDocument, DeleteView):
+    """Elimina un documento."""
+    model = Document
+    
+    def get_success_url(self):
+        return self.object.get_list_url()
+
         
-
-class DocumentTypeAutocompleteView(autocomplete.Select2QuerySetView):
-    """Vista dal.autocomplete para DocumentType."""
-
-    def get_queryset(self):
-        company_pk = self.kwargs["company"]
-        generictype = self.kwargs["generictype"]
-
-        qs = DocumentType.active_objects.filter(
-            company=company_pk, generic_type=generictype)
-
-        if self.request.GET.get("q"):
-            qs = qs.filter(tags__icontains=text.Text.get_tag(q))
-
-        return qs
-
-
 # Json Views.
 
-def document_movements_jsonview(request, company: int, 
+def document_detail_jsonview(request, company: int, 
     document: int) -> JsonResponse:
-    """Retorna un listado de movimientos del documento en cuestión."""
+    """Retorna el detalle del documento junto a sus movimientos y notas."""
 
     company = get_object_or_404(Company, pk=company)
     document = get_object_or_404(Document, pk=document)
@@ -205,8 +205,10 @@ def document_movements_jsonview(request, company: int,
             "warehouse__is_active": document.warehouse.is_active,
             "transfer_warehouse": str(document.transfer_warehouse),
             "transfer_warehouse_id": document.transfer_warehouse_id,
-            "transfer_warehouse__name": getattr(document.transfer_warehouse, "name", ""),
-            "transfer_warehouse__is_active": getattr(document.transfer_warehouse, "is_active", ""),
+            "transfer_warehouse__name": getattr(
+                document.transfer_warehouse, "name", ""),
+            "transfer_warehouse__is_active": getattr(
+                document.transfer_warehouse, "is_active", ""),
             "number": document.number,
             "person": str(document.person),
             "person_id": document.person_id,
@@ -232,7 +234,8 @@ def document_movements_jsonview(request, company: int,
             "doctype__tax_receipt_id": getattr(tax_receipt, "id", None),
             "doctype__tax_receipt__code": getattr(tax_receipt, "code", None),
             "doctype__tax_receipt__name": getattr(tax_receipt, "name", None),
-            "doctype__tax_receipt__is_active": getattr(tax_receipt, "is_active", False),
+            "doctype__tax_receipt__is_active": getattr(
+                tax_receipt, "is_active", False),
         },
         "movements": list(movement_qs.values("id", "number", "item_id",
             "item__codename", "item__name", "name", "quantity", "price",
@@ -245,7 +248,64 @@ def document_movements_jsonview(request, company: int,
             "amount": movement_qs.aggregate(s=Sum("amount"))["s"] or 0,
             "total": movement_qs.aggregate(s=Sum("total"))["s"] or 0,
         },
-
+        "notes": list(document.documentnote_set.all().values("id", "content", 
+            "create_user", "create_date", "username")),
     }
 
     return JsonResponse({"data": out})
+
+
+def document_note_create_jsonview(request, company, document) -> JsonResponse:
+    """Crea una nota para el documento indicado."""
+    document = get_object_or_404(Document, doctype__company=company, 
+        pk=document)
+    note = DocumentNote(document=document, create_user=request.user, 
+        content=request.POST.get("content"))
+    
+    try:
+        note.clean()
+        note.save()
+    except (ValidationError):
+        return JsonResponse({"errors": {"global": [{"message": str(e)}]}})
+
+    return JsonResponse({"data": {"id": note.id}})
+
+
+def document_note_list_jsonview(request, company, document) -> JsonResponse:
+    """Obtiene el listado de notas del documento en una respuesta Json."""
+    document = get_object_or_404(Document, doctype__company=company, 
+        pk=document)
+    notes = document.documentnote_set.all().values(
+        "id", "document", "content", "create_user", "create_date", "username")
+
+    return JsonResponse({"data": notes})
+
+
+def document_note_delete_jsonview(request, company, document) -> JsonResponse:
+    """Elimina la nota con id pasado por URL."""
+    # Todos los campos deben concidir para asegurarnos de que el usuario que 
+    # creó la nota sea el único que la pueda eliminar. El documento debe ser 
+    # el mismo que el de la nota, y la empresa por igual.
+    note = get_object_or_404(DocumentNote, document__doctype__company=company,
+        document=document, create_user=request.user, pk=request.POST.get("id"))
+
+    out = note.delete()
+    return JsonResponse({"data": {"delete": out}})
+
+
+# Autocomplete-light
+
+class DocumentTypeAutocompleteView(autocomplete.Select2QuerySetView):
+    """Vista dal.autocomplete para DocumentType."""
+
+    def get_queryset(self):
+        company_pk = self.kwargs["company"]
+        generictype = self.kwargs["generictype"]
+
+        qs = DocumentType.active_objects.filter(
+            company=company_pk, generic_type=generictype)
+
+        if self.request.GET.get("q"):
+            qs = qs.filter(tags__icontains=text.Text.get_tag(q))
+
+        return qs

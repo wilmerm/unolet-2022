@@ -8,8 +8,17 @@
 
  const app = {
     data() {
-        return {
-            document: {}, // Datos del documento.
+        return { 
+            // Datos del documento.
+            message: {
+                title: "",
+                content: "",
+            },
+            content_new_note: "", // Usado para agregar una nueva nota al documento.
+            document: {
+                currency: null,
+            },
+            notes: [],
             movements: [], // Movimientos del documento.
             totals: {}, // Totales en los movimientos.
 
@@ -54,11 +63,14 @@
             DOCUMENT_PK: DOCUMENT_PK,
             TITLES: TITLES,
             URLS: URLS,
+            USER_ID: USER_ID,
         }
     },
 
     mounted() {
-        this.update_movements();
+        if (this.DOCUMENT_PK) {
+            this.update();
+        }
     },
 
     methods: {
@@ -70,12 +82,13 @@
             }
         },
 
-        // Actualiza el listado de movimientos.
-        update_movements() {
-            fetch(URLS.document_document_movement_list_json)
+        // Actualiza los datos del documento, movimientos, notas, etc.
+        update() {
+            fetch(URLS.api_document_document_detail)
                 .then(r => r.json())
                 .then(data => {
                     this.document = data.data.document;
+                    this.notes = data.data.notes;
                     this.movements = data.data.movements;
                     this.totals = data.data.totals;
                 });
@@ -93,7 +106,7 @@
 
         // Al buscar un artículo en el formulario de movimiento.
         onSearch() {
-            fetch(URLS.inventory_item_list_json + "?q=" + this.search.text)
+            fetch(URLS.api_inventory_item_list + "?q=" + this.search.text)
                 .then(r => r.json())
                 .then(data => {
                     this.search.items = data.data.items;
@@ -101,17 +114,92 @@
                 });
         },
 
+        showModal(modal_id) {
+            let modalEl = document.getElementById(modal_id);
+            let modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        },
+
+        onAddNote() {
+            if (!this.content_new_note) {
+                this.message.content = this.TITLES.write_something;
+                this.message.title = this.TITLES.write_something;
+                this.showModal("message-modal");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("content", this.content_new_note);
+
+            fetch(URLS.api_document_document_documentnote_create, {
+                method: 'POST',
+                headers: {'X-CSRFToken': this.CSRF_TOKEN},
+                body: formData,
+                mode: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Si ocurren errores en el servidor.
+                if (data.errors) {
+                    try {
+                        this.errors = JSON.parse(data.errors);
+                    } catch (error) {
+                        this.errors = data.errors;
+                    }
+                } else {
+                    this.content_new_note = "";
+                    this.update();
+                }
+            });
+        },
+
+        // Elimina la nota con el id indicado.
+        // El servidor solo permite que el usuario que las creó las pueda eliminar.
+        onDeleteNote(note_id) {
+            let formData = new FormData();
+            formData.append("id", note_id);
+
+            fetch(URLS.api_document_document_documentnote_delete, {
+                method: 'POST',
+                headers: {'X-CSRFToken': this.CSRF_TOKEN},
+                body: formData,
+                mode: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Si ocurren errores en el servidor.
+                if (data.errors) {
+                    try {
+                        this.errors = JSON.parse(data.errors);
+                    } catch (error) {
+                        this.errors = data.errors;
+                    }
+                } else {
+                    this.update();
+                }
+            });
+        },
+
+        // Abre el formulario para agregar un nuevo movimiento.
+        onAddMovement() {
+            if (!this.DOCUMENT_PK) {
+                this.showModal("message-modal");
+                this.message.title = this.TITLES.you_must_save_the_document;
+                this.message.content = this.TITLES.you_must_save_the_document_to_add_movements;
+                return;
+            }
+            this.showModal("movement-add-modal");
+        },
+
         // Abre el formulario para editar un movimiento.
         onEditMovement(movement) {
-            var modalEl = document.getElementById("movement-add-modal");
-            var modal = new bootstrap.Modal(modalEl);
-            modal.show();
+            this.showModal("movement-add-modal");
             this.movement = movement;
         },
 
         // Al guardar el movimiento.
         onSaveMovement() {
-            var formData = new FormData();
+            let formData = new FormData();
             formData.append("id", this.movement.id);
             formData.append("document", this.DOCUMENT_PK);
             formData.append("item", this.movement.item_id);
@@ -122,7 +210,7 @@
             formData.append("discount", this.movement.discount);
             formData.append("tax_already_included", this.movement.tax_already_included);
 
-            fetch(URLS.inventory_movement_form_json, {
+            fetch(URLS.api_inventory_movement_form, {
                 method: 'POST',
                 headers: {'X-CSRFToken': this.CSRF_TOKEN},
                 body: formData,
@@ -140,7 +228,7 @@
                         let modalEl = document.getElementById('movement-add-modal');
                         let modal = bootstrap.Modal.getInstance(modalEl);
                         modal.hide();
-                        this.update_movements();
+                        this.update();
                         this.reset();
                     }
                 });
@@ -175,59 +263,7 @@
 
 
 Vue.createApp(app)
-
-// .component("item-search", {
-//     data() {
-//         return {
-//             search: "",
-//             items: [],
-//             count: 0,
-//             selected_item: {},
-//             TITLES: TITLES,
-//             URLS: URLS,
-//         }
-//     },
-//     props: ["items", "item"],
-//     template: `
-//         <input type="search" v-model="search" class="form-control" placeholder="..." v-on:input="onSearch">
-//         <table v-if="count" class="table table-sm table-hover mt-1">
-//             <thead>
-//                 <th class="text-start">{{ TITLES.name }}</th>
-//                 <th class="text-end">{{ TITLES.price }}</th>
-//                 <th class="text-end">{{ TITLES.available }}</th>
-//             </thead>
-//             <tbody>
-//                 <tr v-for="item in items" :id="'item-'+item.id" v-on:click="onSelect(item)">
-//                     <td>{{ item.codename }} | {{ item.name }}</td>
-//                     <td class="text-end">{{ item.max_price }}</td>
-//                     <td class="text-end">{{ item.available }}</td>
-//                 </tr>
-//             </tbody>
-//         </table>
-//         <div class="container-fluid">
-//             <div class="row">
-//                 <div class="col col-12 col-sm-6 col-md-4 col-lg-3>
-//                     <label for="id_movement_>{{ TITLES.code }}</label>
-//                 </div>
-//             </div>
-//         </div>
-//     `,
-//     methods: {
-//         onSearch_____() {
-//             fetch(URLS.inventory_item_list_json + "?q=" + this.search)
-//                 .then(r => r.json())
-//                 .then(data => {
-//                     this.items = data.data.items;
-//                     this.count = data.data.count;
-//                 });
-//         },
-//         onSelect_____(item) {
-//             this.selected_item = item;
-//             this.movement.item_id = item;
-//         },
-//     }
-// })
-
+// ---
 .mount("#document-form-app");
 
 

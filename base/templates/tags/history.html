@@ -2,8 +2,15 @@
 {% load tz %}
 {% load base %}
 <!-- history -->
-<div class="p-2 bg-white border {{ extra_classes }}">
+{% if object.pk %}
+{% with object.get_history as history %}
+<div class="p-3 bg-white border {{ extra_classes }}" style="max-height: 512px; overflow: auto;">
     <h3>{% svg 'clock-history' %} {{ title }}</h3>
+    {% if not history %}
+    <div class="alert alert-warning">
+        <b>{{ object }}</b> {% trans 'no tiene historial de cambios.' %}
+    </div>
+    {% else %}
     <table class="table table-sm">
         <thead>
             <tr>
@@ -13,7 +20,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for obj in object.get_history %}
+            {% for obj in history %}
             <tr title="{{ obj.history_change_reason }}">
                 <td>{{ obj.history_date }}</td>
                 <td>{{ obj.history_user }}</td>
@@ -22,6 +29,8 @@
             {% endfor %}
         </tbody>
     </table>
-
+    {% endif %}
 </div>
+{% endwith %}
+{% endif %}
 <!-- End history -->
