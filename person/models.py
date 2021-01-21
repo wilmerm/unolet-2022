@@ -47,6 +47,9 @@ class IdentificationType(utils.ModelBase):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return self.get_update_url()
+
     def clean(self):
         self.clean_name()
 

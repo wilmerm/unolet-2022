@@ -5,11 +5,21 @@ from finance import views
 
 urlpatterns = [
 
+    path("", views.IndexView.as_view(), name="finance-index"),
+
     path("account/payable/", views.AccountPayableView.as_view(),
     name="finance-account-payable"),
 
     path("account/receivable/", views.AccountReceivableView.as_view(), 
     name="finance-account-receivable"),
+
+    path("account/receivable/document/list/", 
+    views.AccountReceivableDocumentListView.as_view(), 
+    name="finance-account-receivable-document-list"),
+
+    path("account/receivable/document/list/<int:pk>/", 
+    views.AccountReceivableDocumentDetailView.as_view(),
+    name="finance-account-receivable-document-detail"),
 
     # Json views.
 

@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.db.models import Sum, F
 from django.conf import settings
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -162,10 +163,17 @@ class OutputDocumentManager(models.Manager):
 
 class TransferDocumentManager(models.Manager):
     """Manejador para documentos de tipo transferencia."""
-
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(doctype__generic_type=DocumentType.TRANSFER)
+
+
+class AcceptPaymentsDocumentManager(models.Manager):
+    """Manejador solo para documentos que aceptan pagos."""
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.filter(
+            doctype__generic_type__in=DocumentType.TYPES_THAT_CAN_ACCEPT_PAYMENTS)
 
 
 class Document(utils.ModelBase):
@@ -189,6 +197,11 @@ class Document(utils.ModelBase):
 
     number = models.CharField(_l("número"), max_length=30, blank=True)
 
+    date = models.DateField(_l("fecha"), default=timezone.now)
+
+    expiration_date = models.DateField(_l("fecha de vencimiento"), 
+    default=timezone.now, blank=True, null=True)
+
     person = models.ForeignKey("person.Person", on_delete=models.PROTECT, 
     null=True, blank=True, verbose_name=_l("persona"))
 
@@ -201,7 +214,7 @@ class Document(utils.ModelBase):
     default=get_default_currency, null=True, verbose_name=_l("moneda"))
 
     currency_rate = models.DecimalField(_l("tasa de cambio"), max_digits=10, 
-    decimal_places=2, default=1, blank=True, null=True,
+    decimal_places=4, default=1, blank=True, null=True,
     validators=[MinValueValidator(0)])
 
     tax_receipt_number = models.OneToOneField("finance.TaxReceiptNumber", 
@@ -246,6 +259,9 @@ class Document(utils.ModelBase):
     # Documentos de tipo transferencia.
     transfer_objects = TransferDocumentManager()
 
+    # Documentos que aceptan pagos.
+    accept_payments_objects = AcceptPaymentsDocumentManager()
+
     class Meta:
         verbose_name = _l("documento")
         verbose_name_plural = _l("documentos")
@@ -259,9 +275,7 @@ class Document(utils.ModelBase):
 
     def get_reverse_kwargs(self):
         """Obtiene el diccionario para construir la URL con reverse."""
-        print("hola")
-        return {
-            "company": self.doctype.company.pk,
+        return {"company": self.doctype.company.pk,
             "generictype": self.doctype.generic_type, "pk": self.pk}
 
     def get_absolute_url(self, mode="update"):
@@ -386,10 +400,11 @@ class Document(utils.ModelBase):
     def get_balance(self) -> Decimal:
         """Obtiene el saldo de este documento."""
         self.calculate() # Actualizamos primero por si acaso.
-        credit_sum = self.get_credits().aggregate(s=Sum("amount"))["s"] or 0
-        debit_sum = self.get_debits().aggregate(s=Sum("amount"))["s"] or 0
-        total_sum = credit_sum - debit_sum
-        return self.total - total_sum
+        return self.total - self.get_payments_sum()
+
+    def get_payments_sum(self):
+        """Obtiene la sumatoria de los pagos realizados."""
+        return self.get_transactions().aggregate(s=Sum("amount"))["s"] or 0
 
     def get_credits(self) -> models.QuerySet:
         """
@@ -398,11 +413,11 @@ class Document(utils.ModelBase):
         un crédito/débito para la empresa, sino que se considera si ha sido un 
         credito/debito para el documento dependiendo su tipo.
         """
-        return self.get_transactions().filter(mode=Transaction.CREDIT)
+        return self.get_transactions().filter(amount__gte=0)
 
     def get_debits(self) -> models.QuerySet:
         """Igual que get_relative_credits pero con los débitos."""
-        return self.get_transactions().filter(mode=Transaction.DEBIT)
+        return self.get_transactions().filter(amount__lt=0)
 
     def get_transactions(self) -> models.QuerySet:
         """Obtiene las transacciones contables realizadas a este documento."""

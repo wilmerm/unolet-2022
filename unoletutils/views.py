@@ -119,6 +119,8 @@ class BaseView:
         pk = self.kwargs.get(self.pk_in_url)
         
         if company_pk and pk:
+            if self.model is None:
+                raise ValueError("El valor del atributo 'model' no puede ser None.")
             filters = {self.company_field: company_pk, self.pk_field: pk}
             obj = get_object_or_404(self.model, **filters)
         else:

@@ -1,0 +1,42 @@
+{% extends 'finance/list.html' %}
+{% load i18n %}
+{% load base %}
+
+
+{% block content %}
+<div class="container">
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered table-resize">
+            <thead class="table-light">
+                <tr>
+                    <th>{% trans 'Número' %}</th>
+                    <th>{% trans 'Fecha' %}</th>
+                    <th>{% trans 'Cliente' %}</th>
+                    <th>{% trans 'Total' %}</th>
+                    <th>{% trans 'Pagos' %}</th>
+                    <th>{% trans 'Balance' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in object_list %}
+                <tr>
+                    <td><a href="{{ obj.get_absolute_url }}">{{ obj.get_number }}</a></td>
+                    <td>{{ obj.date }}</td>
+                    <td>
+                        {% if obj.person %}
+                            <a href="{{ obj.person.get_absolute_url }}">{{ obj.get_person_name }}</a></td>
+                        {% else %}
+                            {{ obj.get_person_name }}
+                        {% endif %}
+                    <td class="text-end">{{ obj.total }}</td>
+                    <td class="text-end">
+                        <a href="{% url 'finance-account-receivable-document-detail' company=company.pk pk=obj.pk %}">{{ obj.payments }}</a>
+                    </td>
+                    <td class="text-end">{{ obj.balance }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}

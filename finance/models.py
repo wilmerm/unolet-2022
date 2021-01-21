@@ -11,6 +11,37 @@ from django.utils.translation import gettext_lazy as _l
 from unoletutils.libs import utils
 
 
+class PaymentMethod(utils.ModelBase):
+    """Forma de pago."""
+
+    tags = None
+
+    name = models.CharField(_l("nombre"), max_length=100)
+
+    class Meta:
+        verbose_name = _l("forma de pago")
+        verbose_name_plural = _l("formas de pagos")
+        constraints = [
+            models.UniqueConstraint(fields=["company", "name"], 
+            name="unique_paymentmethod_name"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        self.name = self.strip(self.name)
+
+        if PaymentMethod.objects.filter(company=self.company, 
+            name__iexact=self.name).exclude(pk=self.pk):
+            raise ValidationError(
+                {"name": _("Ya existe una forma de pago con este nombre.")})
+
+    def save(self, *args, **kwargs):
+        self.name = self.strip(self.name)
+        return super().save(*args, **kwargs)
+        
+
 class Currency(utils.ModelBase):
     """
     Moneda.
@@ -417,44 +448,69 @@ class TaxReceiptAuthorization(utils.ModelBase):
 class Transaction(utils.ModelBase):
     """
     Transacción contable.
-    """
+    
+    Una transacción es un pago de dinero que se realiza a un documento.
+    Las transacciones pueden ser positivas (créditos) o negativas (débitos).
+    Nota: se asumió el uso de transacciones negativas para facilitar el cálculo.
+    Una transacción positiva (crédito) significa siempre un dinero que entra a
+    la empresa, una negativa (débito) es un dinero que salió de la empresa. 
+    Nota: los documentos que representan una entrada de efectivo a la empresa,
+    como facturas por ejemplo, sus movimientos deberán generar un saldo negativo
+    para que los pagos que se realicen (créditos) pues lo reduzcan; contrario a
+    los documentos que representan una salida de efectivo de la empresa, como 
+    por ejemplo las compras, en estos sus movimientos deberán generar un saldo
+    a favor de la empresa, para que sus pagos que serán (débitos) pues lo salden.
 
-    DEBIT, CREDIT = "-", "+"
-    MODE_CHOICES = (
-        (DEBIT, _l("Débito")),
-        (CREDIT, _l("Crédito")),
-    )
+    La empresa será la misma del documento.
+    La moneda será la misma del documento. La tasa no necesariamente.
+    """
 
     company = None # La empresa será document.doctype.company
 
     document = models.ForeignKey("document.Document", on_delete=models.CASCADE)
 
-    # Determina si el monto se sumará o restará.
-    # Esta idea es relativa para la empresa, de modo que un crédito será una 
-    # entrada para la empresa y un débito una salida para la empresa.
-    mode = models.CharField(_l("modo"), max_length=1, choices=MODE_CHOICES)
-
-    amount = models.DecimalField(_l("monto"), max_digits=22, decimal_places=2,
-    validators=[MinValueValidator(0)])
+    amount = models.DecimalField(_l("monto"), max_digits=22, decimal_places=2)
 
     concept = models.CharField(_l("concepto"), max_length=200, blank=True)
 
+    currency_rate = models.DecimalField(_l("tasa de cambio"), max_digits=10, 
+    decimal_places=4, default=1, blank=True, null=True,
+    validators=[MinValueValidator(0)])
+
+    person = models.ForeignKey("person.Person", on_delete=models.SET_NULL, 
+    default=None, null=True, blank=True, verbose_name=_l("Persona"))
+
+    person_name = models.CharField(_l("nombre de la persona"), max_length=100,
+    blank=True)
+
+    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.PROTECT,
+    blank=True, null=True, verbose_name=_l("forma de pago"))
+
     create_user = models.ForeignKey("user.User", on_delete=models.PROTECT, 
     blank=True, null=True, default=None)
+
+    create_date = models.DateTimeField(_l("fecha"), auto_now_add=True)
 
     note = models.CharField(_l("nota"), max_length=500, blank=True)
 
     class Meta:
         verbose_name = _l("transacción")
         verbose_name_plural = _l("transacciones")
+        ordering = ["-create_date"]
 
     def __str__(self):
-        if self.mode == self.DEBIT:
-            return f"-{self.amount:,}"
         return f"{self.amount:,}"
 
+    def save(self, *args, **kwargs):
+        # Si no se indica un nombre de persona, 
+        # este será el de la persona elegida.
+        if not self.person_name:
+            self.person_name = str(self.person or "")
 
+        return super().save(*args, **kwargs)
 
+    def get_number(self):
+        return "P{:0>14}".format(self.id)
 
 
 

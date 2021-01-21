@@ -1,1 +1,6 @@
 {% extends 'document/list.html' %}
+
+
+{% block actions %}
+    {% create_button request model=object_list.model size="1.5rem" url=view.get_create_url %}
+{% endblock %}

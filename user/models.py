@@ -101,8 +101,8 @@ class User(AbstractUser):
             return False
 
         # Pausado mientras se desarrolla...
-        #if self.is_superuser:
-            #return True
+        if self.is_superuser:
+            return True
 
         user_company_permissions = self.get_company_permissions(company)
         if isinstance(permission, str):
