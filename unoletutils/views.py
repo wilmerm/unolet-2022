@@ -99,7 +99,10 @@ class BaseView:
     title = ""
 
     def get_title(self):
-        vnp = str(getattr(self.get_object(), "verbose_name_plural", "")).title()
+        try:
+            vnp = str(getattr(self.model._meta, "verbose_name_plural", "")).title()
+        except (AttributeError):
+            vnp = ""
         return str(self.title or self.get_object() or vnp)
 
     def get_company(self):
@@ -254,6 +257,9 @@ class UpdateView(BaseForm, generic.UpdateView):
 
 class DeleteView(BaseView, generic.DeleteView):
     template_name = "base/confirm_delete.html"
+
+    def get_success_url(self):
+        return self.get_object().get_list_url()
 
 
 class TemplateView(BaseView, generic.TemplateView):

@@ -1,0 +1,51 @@
+{% extends 'finance/list.html' %}
+{% load humanize %}
+{% load i18n %}
+{% load base %}
+
+
+{% block content %}
+<div class="container">
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered table-resize">
+            <thead class="table-light">
+                <tr>
+                    <th>{% trans 'Identificación' %}</th>
+                    <th>{% trans 'Nombre' %}</th>
+                    <th>{% trans 'Límite de crédito' %}</th>
+                    <th>{% trans 'Crédito disponible' %}</th>
+                    <th>{% trans 'Facturado' %}</th>
+                    <th>{% trans 'Pagado' %}</th>
+                    <th>{% trans 'Balance' %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in object_list %}
+                <tr>
+                    <td><a href="{{ obj.get_absolute_url }}">{{ obj.identification }}</a></td>
+                    <td>{{ obj.name }}</td>
+                    <td class="text-end">{{ obj.credit_limit|intcomma }}</td>
+                    <td class="text-end">{{ obj.available|intcomma }}</td>
+                    <td class="text-end">{{ obj.total|intcomma }}</td>
+                    <td class="text-end">{{ obj.payments|intcomma }}</td>
+                    <td class="text-end">{{ obj.balance|intcomma }}</td>
+                    <td class="text-center"><a class="opacity-8-hover" href="{% url 'finance-account-receivable-person-detail' company=company.pk pk=obj.pk %}">{% svg 'eye-fill' %}</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td colspan="2"></td>
+                    <td class="text-end">{{ view.totals.credit_limit__sum|intcomma }}</td>
+                    <td class="text-end">{{ view.totals.available__sum|intcomma }}</td>
+                    <td class="text-end">{{ view.totals.total__sum|intcomma }}</td>
+                    <td class="text-end">{{ view.totals.payments__sum|intcomma }}</td>
+                    <td class="text-end">{{ view.totals.balance__sum|intcomma }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock content %}

@@ -10,11 +10,12 @@ from django.apps import apps
 from django.utils.html import format_html
 
 from unoletutils.libs import utils
+from unoletutils.models import ModelBase
 
 from module.models import Module
 
 
-class Company(utils.ModelBase):
+class Company(ModelBase):
     """
     Representa una empresa en la base de datos.
 
@@ -127,7 +128,7 @@ class Company(utils.ModelBase):
         return False
 
 
-class CompanyPermission(utils.ModelBase):
+class CompanyPermission(ModelBase):
     """
     Permiso dentro de una empresa.
 
@@ -248,13 +249,12 @@ class CompanyPermission(utils.ModelBase):
             cls.populate(company, generic_permissions)
 
 
-class CompanyPermissionGroup(utils.ModelBase):
+class CompanyPermissionGroup(ModelBase):
     """
     Grupos (como los django.auth.Group) pero para CompanyPermission.
 
     Para trabajar los permisos de acceso por empresa.
     """
-
     tags = None
 
     codename = models.CharField(_l("código"), max_length=50)

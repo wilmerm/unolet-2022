@@ -2,7 +2,8 @@ from django import forms
 
 from base.forms import ModelForm
 from company.models import Company
-from .models import (Item, ItemFamily, ItemGroup, Movement)
+from document.models import Document, DocumentType
+from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
 
 
 class ItemForm(ModelForm):
@@ -25,4 +26,10 @@ class MovementForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        print("-----", self.company.id)
+        
+
+
+    
 

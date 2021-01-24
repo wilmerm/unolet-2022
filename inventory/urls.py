@@ -23,6 +23,7 @@ urlpatterns = [
     path("api/movement/<int:document>/form/", views.movement_form_jsonview, 
     name="api-inventory-movement-form"),
 
-
+    path("api/movement/<int:document>/delete/", views.movement_delete_jsonview,
+    name="api-inventory-movement-delete"),
 
 ]

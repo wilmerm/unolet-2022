@@ -89,6 +89,10 @@ class DocumentPurchaseForm(DocumentForm):
 class DocumentInvoiceForm(DocumentForm):
     """Formulario para facturas."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.pop("transfer_warehouse")
+
 
 class DocumentInventoryInputForm(DocumentForm):
     """Formulario para entradas de inventario."""

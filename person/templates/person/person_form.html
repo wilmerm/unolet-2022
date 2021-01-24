@@ -1,0 +1,76 @@
+{% extends 'person/form.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load bootstrap5 %}
+{% load base %}
+
+
+{% block content %}
+<form action="" method="POST">
+    {% csrf_token %}
+    {% bootstrap_form_errors form %}
+    <div class="container">
+        <div class="row">
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                {% bootstrap_field form.identification %}
+            </div>
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                {% bootstrap_field form.identification_type %}
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-12 col-md-6">
+                {% bootstrap_field form.name %}
+            </div>
+            <div class="col col-12 col-md-6">
+                {% bootstrap_field form.business_name %}
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-12 col-md-6">
+                {% bootstrap_field form.email %}
+            </div>
+            <div class="col col-12 col-md-6">
+                {% bootstrap_field form.phone %}
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-12 col-sm-6 col-md-4">
+                {% bootstrap_field form.contact_person %}
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                {% bootstrap_field form.credit_limit %}
+            </div>
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                {% bootstrap_field form.credit_limit_days %}
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                {% bootstrap_field form.is_supplier %}
+            </div>
+            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                {% bootstrap_field form.is_active %}
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-6">
+                <input class="btn btn-success" type="submit" value="{% trans 'Guardar' %}">
+            </div>
+            <div class="col col-6 text-end">
+                {% if object.pk %}
+                <a class="btn btn-danger" href="{{ object.get_delete_url }}">{% trans 'Eliminar' %}</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock content %}

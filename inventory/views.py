@@ -8,6 +8,7 @@ from unoletutils.libs import text
 from unoletutils.views import (ListView, DetailView, UpdateView, CreateView, 
     DeleteView, TemplateView, JsonResponseMixin)
 from company.models import Company
+from document.models import Document
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
 from inventory.forms import (ItemForm, MovementForm)
 
@@ -56,8 +57,8 @@ def item_list_jsonview(request, company: int) -> JsonResponse:
         limit = int(request.GET.get("limit"))
     except (TypeError, ValueError):
         limit = 20
-
-    qs = Item.active_objects.all()
+    
+    qs = Item.active_objects.filter(company=company)
 
     if request.GET.get("q"):
         qs = qs.filter(tags__icontains=text.Text.get_tag(request.GET["q"]))
@@ -65,7 +66,6 @@ def item_list_jsonview(request, company: int) -> JsonResponse:
         qs = qs.none()
 
     qs = qs[:limit]
-
     item_list = list(qs.values(
         "id", "code", "codename", "name", "description", 
         "group_id", "group__name",
@@ -74,7 +74,6 @@ def item_list_jsonview(request, company: int) -> JsonResponse:
         "min_price", "max_price", "available",
         "is_active"
     ))
-
     return JsonResponse({"data": {"items": item_list, "count": qs.count()}})
 
 
@@ -85,8 +84,8 @@ def json_response_error(field: str, message: str, code: str="", status=404):
 
 def movement_form_jsonview(request, company: int, document: int) -> JsonResponse:
     """Crea o modifica un movimiento y devuelve un JsonResponse."""
-    error_list = []
     company = get_object_or_404(Company, pk=company)
+    document = get_object_or_404(Document, doctype__company=company, pk=document)
 
     # El usuario deberá tener alguno de estos dos permisos. Más adelante 
     # volveremos a comprobar los permisos según sea una edición o creación.
@@ -101,7 +100,7 @@ def movement_form_jsonview(request, company: int, document: int) -> JsonResponse
             return json_response_error("global", _("El documento es requerido"), 
                 "required", 400)
 
-        if document_pk != document:
+        if document_pk != document.pk:
             return json_response_error("global", _("No válido"))
 
         # El item según el modelo puede ser nulo, pero aquí queremos un item.
@@ -119,15 +118,16 @@ def movement_form_jsonview(request, company: int, document: int) -> JsonResponse
                 company, "inventory.add_movement"):
                 return json_response_error("global", _("Permiso denegado."))
             pk = None
-            form = MovementForm(request.POST)
+            form = MovementForm(request.POST, company=company)
         else:
             # El usuario deberá tener el permiso de modificar movimientos.
             if not request.user.has_company_permission(
                 company, "inventory.change_movement"):
                 return json_response_error("global", _("Permiso denegado."))
-            instance = Movement.objects.get(pk=pk, company=company)
-            form = MovementForm(request.POST, instance=instance)
-        
+                
+            instance = Movement.objects.get(pk=pk, document=document)
+            form = MovementForm(request.POST, company=company, instance=instance)
+
         if form.is_valid():
             instance = form.save(commit=False)
             # Lógica. ....
@@ -135,16 +135,24 @@ def movement_form_jsonview(request, company: int, document: int) -> JsonResponse
             return JsonResponse({"data": {"pk": instance.pk}})
         else:
             errors = form.errors.as_json()
+            print(errors)
             return JsonResponse({"errors": errors}, status=400)
     else:
-        form = MovementForm()
+        form = MovementForm(company=company)
     return JsonResponse({"data": {"company": company.pk, "document": document}})
 
     
-def movement_delete_jsonview(request, pk: int) -> JsonResponse:
+def movement_delete_jsonview(request, company, document) -> JsonResponse:
     """Elimina un movimiento y retorna un JsonResponse."""
-    movement = get_object_or_404(Movement, pk=pk)
+    # Realizamos una consulta compleja para asegurarnos que la 
+    # solicitud sea válida, realizada desde la misma empresa y 
+    # documento al que pertenece el movimiento.
+    movement = get_object_or_404(Movement, document__doctype__company=company, 
+        document=document, pk=request.POST.get("id"))
 
+    movement.delete()
+    return JsonResponse({"id": request.POST.get("id"), "delete": True})
+    
 
 
 

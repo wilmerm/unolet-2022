@@ -1,13 +1,16 @@
 from django.db import models
+from django.db.models import Sum, F
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 
 from unoletutils.libs import utils
+from unoletutils.models import ModelBase
+from document.models import DocumentType, Document
 
 
-class IdentificationType(utils.ModelBase):
+class IdentificationType(ModelBase):
     """
     Tipo de identificación para personas.
     """
@@ -105,16 +108,19 @@ class PersonActiveManager(models.Manager):
         return super().get_queryset().filter(is_active=True)
 
 
-class Person(utils.ModelBase):
+class Person(ModelBase):
     """
     Persona.
     """
+
+    ICON = "/static/img/person.svg"
 
     # Identificación única para cada persona en una empresa.
     identification = models.CharField(_l("identificación"), max_length=50)
 
     identification_type = models.ForeignKey(IdentificationType, 
-    on_delete=models.SET_NULL, blank=True, null=True, default=None)
+    on_delete=models.SET_NULL, blank=True, null=True, default=None,
+    verbose_name=_l("Tipo de identificación"))
 
     name = models.CharField(_l("nombre"), max_length=100)
 
@@ -175,10 +181,65 @@ class Person(utils.ModelBase):
     def clean_identification(self):
         if not self.identification_type:
             return self.identification
-        
         # Validamos seǵun los parámetros del tipo de identificación.
         return self.identification_type.validate_identification(self.identification)
 
     def save(self, *args, **kwargs):
         self.clean_identification_type()
         return super().save(*args, **kwargs)
+
+    def get_document_account_receivable_pending_payment(self):
+        """
+        Obtiene los documentos que esta persona tiene pendientes de pago.
+        """
+        types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
+        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = qs.annotate(balance=F("total")-Sum("transaction__amount"))
+        return qs.filter(balance__gt=0)
+
+    def get_document_account_payable_pending_payment(self):
+        """
+        Obtiene los documentos que la empresa le debe a esta persona.
+        """
+        types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_PAYABLE
+        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = qs.annotate(balance=F("total")-Sum("transaction__amount"))
+        return qs.filter(balance__gt=0)
+
+    def get_balance_account_receivable(self):
+        """
+        Obtiene el balance de la cuenta por cobrar de esta persona.
+        (El balance que esta persona le debe a la empresa).
+        """
+        types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
+        # Solo documentos que afectan la cuenta por cobrar.
+        qs = self.document_set.filter(doctype__generic_type__in=types)
+        return qs.aggregate(s=Sum("total")-Sum("transaction__amount")).get("s", 0)
+
+    def get_balance_account_payable(self):
+        """
+        Obtiene el balance de la cuenta por pagar de esta persona.
+        (El balance que la empresa le debe a esta persona).
+        """
+        types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_PAYABLE
+        # Solo documentos que afectan la cuenta por cobrar.
+        qs = self.document_set.filter(doctype__generic_type__in=types)
+        return qs.aggregate(s=Sum("total")-Sum("transaction__amount")).get("s", 0)
+
+    def get_balance(self):
+        """
+        Obtiene el balance global de esta persona, tomando en cuenta tanto la 
+        cuenta por pagar como la cuenta por cobrar.
+
+        Asi que si el cliente debe 500, pero la empresa le debe a él 200 
+        (por ser suplidor por ejemplo), entonces el balance será -300.
+
+        Si desea solo el balance por el monto adeudado a la empresa, debe 
+        utilizar 'get_balance_account_receivable', y 
+        'get_balance_account_payable' para el balance que le debe la empresa a 
+        dicho cliente.
+        """
+        types = DocumentType.TYPES_THAT_CAN_ACCEPT_PAYMENTS
+        # Solo documentos que aceptan pagos.
+        qs = self.document_set.filter(doctype__generic_type__in=types)
+        return qs.aggregate(s=Sum("total")-Sum("transaction__amount")).get("s", 0)

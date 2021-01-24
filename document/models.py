@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse_lazy
 
 from unoletutils.libs import utils
+from unoletutils.models import ModelBase
 from finance.models import (Transaction)
 
 
@@ -27,7 +28,7 @@ class DocumentTypeActiveManager(models.Manager):
         return super().get_queryset().filter(is_active=True)
 
 
-class DocumentType(utils.ModelBase):
+class DocumentType(ModelBase):
     """
     Tipo de documento.
     """
@@ -176,18 +177,20 @@ class AcceptPaymentsDocumentManager(models.Manager):
             doctype__generic_type__in=DocumentType.TYPES_THAT_CAN_ACCEPT_PAYMENTS)
 
 
-class Document(utils.ModelBase):
+class Document(ModelBase):
     """
     Documento.
     """
 
+    COMPANY_FIELD_NAME = "doctype__company"
+
     company = None # La empresa será doctype.company
 
     warehouse = models.ForeignKey("warehouse.Warehouse", 
-    on_delete=models.CASCADE, help_text=_l("almacén del documento."))
+    on_delete=models.PROTECT, help_text=_l("almacén del documento."))
 
     transfer_warehouse = models.ForeignKey("warehouse.Warehouse", blank=True,
-    null=True, default=None, on_delete=models.CASCADE, 
+    null=True, default=None, on_delete=models.PROTECT, 
     related_name="document_transfer_set", help_text=_l("almacén a transferir."))
 
     doctype = models.ForeignKey(DocumentType, on_delete=models.PROTECT,
@@ -424,7 +427,7 @@ class Document(utils.ModelBase):
         return self.transaction_set.all()
 
 
-class DocumentNote(utils.ModelBase):
+class DocumentNote(ModelBase):
     """
     Notas que se agregarán a los documentos como comentarios de los usuarios.
     

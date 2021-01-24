@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse_lazy
 
 from unoletutils.libs import utils
+from unoletutils.models import ModelBase
 
 
 def get_default_currency():
@@ -15,11 +16,10 @@ def get_default_currency():
     return Currency.objects.filter(is_default=True).last()
 
 
-class ItemGroup(utils.ModelBase):
+class ItemGroup(ModelBase):
     """
     Grupo de artículos.
     """
-
     name = models.CharField(_l("grupo"), max_length=50)
 
     class Meta:
@@ -41,11 +41,10 @@ class ItemGroup(utils.ModelBase):
         return super().save(*args, **kwargs)
 
 
-class ItemFamily(utils.ModelBase):
+class ItemFamily(ModelBase):
     """
     Familia de artículos.
     """
-    
     name = models.CharField(_l("familia"), max_length=50)
 
     class Meta:
@@ -74,11 +73,10 @@ class ItemActiveManager(models.Manager):
         return super().get_queryset().filter(is_active=True)
     
 
-class Item(utils.ModelBase):
+class Item(ModelBase):
     """
     Artículo de inventario.
     """
-
     # Código único del artículo para cada empresa.
     code = models.CharField(_l("código"), max_length=8, editable=False)
     
@@ -218,7 +216,7 @@ class TransferMovementManager(models.Manager):
             document__doctype__generic_type=DocumentType.TRANSFER)
 
 
-class Movement(utils.ModelBase):
+class Movement(ModelBase):
     """
     Movimiento de inventario.
     """

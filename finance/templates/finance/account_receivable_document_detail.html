@@ -4,8 +4,25 @@
 {% load base %}
 
 
+{% block actions %}
+<a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">
+    <img src="{{ object.get_img }}" alt="">
+    {% trans 'Ir al documento' %}
+</a>
+{% endblock actions %}
+
+
 {% block content %}
 <div class="container">
+    {% with object.get_transactions as transactions %}
+    {% if not transactions %}
+    <div class="alert alert-info shadow">
+        {% svg 'info-circle-fill' %}
+        {% trans 'Este documento no tiene pagos.' %}
+        <hr>
+        <a class="btn btn-info" href="{% url 'finance-transaction-create' company=company.pk document=object.pk %}">{% trans 'Realizar pago' %}</a>
+    </div>
+    {% else %}
     <div class="table-responsive">
         <table class="table table-sm table-bordered table-resize">
             <thead class="table-light">
@@ -21,7 +38,11 @@
             <tbody>
                 {% for obj in object.get_transactions %}
                 <tr>
-                    <td>{{ obj.get_number }}</td>
+                    <td>
+                        <a href="{{ obj.get_absolute_url }}">
+                            <img src="{{ obj.get_img }}" alt="">{{ obj.get_number }}
+                        </a>
+                    </td>
                     <td>{{ obj.create_date }}</td>
                     <td>{{ obj.person_name }}</td>
                     <td>{{ obj.payment_method|readable }}</td>
@@ -39,5 +60,7 @@
             </tfoot>
         </table>
     </div>
+    {% endif %}
+    {% endwith %}
 </div>
 {% endblock content %}

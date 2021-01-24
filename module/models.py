@@ -8,9 +8,10 @@ from django.core.exceptions import ValidationError
 from colorfield.fields import ColorField
 
 from unoletutils.libs import utils, icons
+from unoletutils.models import ModelBase
 
 
-class Module(utils.ModelBase):
+class Module(ModelBase):
     """
     Este modelo lo que hace es almacenar un urlpath, entonces asignamos 
     distintos módulos a los usuarios, y si un usuario accede a un urlpath se 

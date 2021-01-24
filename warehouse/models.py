@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse_lazy
 
 from unoletutils.libs import utils
+from unoletutils.models import ModelBase
 from company.models import Company
 
 
@@ -23,7 +24,7 @@ class WarehouseActiveManager(models.Manager):
         return super().get_queryset().filter(is_active=True)
 
 
-class Warehouse(utils.ModelBase):
+class Warehouse(ModelBase):
     """
     Un almacén es una entidad del mundo real que pertenece a una empresa.
 
@@ -38,6 +39,8 @@ class Warehouse(utils.ModelBase):
     creados. De modo que, dichos documentos, tendrán la información que se haya 
     configurado en dicho almacén.
     """
+
+    ICON = "/static/img/warehouse.svg"
 
     name = models.CharField(_l("nombre"), max_length=100,
     help_text=_l("nombre para el público."))

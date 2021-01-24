@@ -27,10 +27,10 @@
             <tbody>
                 {% for obj_capsule in view.object_list %}
                 <tr>
-                    <td class="text-center text-truncate"><input type="checkbox" name="" id="check-item-{{ obj.id }}"></td>
+                    <td class="text-center text-truncate"><input type="checkbox" name="" id="check-item-{{ obj_capsule.id }}"></td>
                     <td class="text-center text-truncate">
-                        <a href="{{ obj.get_absolute_url }}">
-                            <img src="{{ obj.get_img }}" alt="" style="width: 1rem; height: auto; margin-right: 0.5rem;">
+                        <a href="{{ obj_capsule.get_absolute_url }}">
+                            <img src="{{ obj_capsule.get_img }}" alt="" style="width: 1rem; height: auto; margin-right: 0.5rem;">
                         </a>
                     </td>
                         {% for attname, item in obj_capsule.get_values.items %}

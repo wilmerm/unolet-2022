@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from django.db.models import Sum, F, When, Case
+from django.db.models import Sum, F, Value, When, Case
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 
@@ -9,12 +9,32 @@ from dal import autocomplete
 from unoletutils.libs import text
 from unoletutils import views
 from document.models import Document, DocumentType
-from finance.models import Currency
+from person.models import Person
+from finance.models import (Currency, Transaction)
+from finance.forms import TransactionForm
 
 
 class IndexView(views.TemplateView):
     """Página principal de la aplicación finance."""
     template_name = "finance/index.html"
+
+
+class TransactionCreateView(views.CreateView):
+    """Crea una transacción."""
+    model = Transaction
+    form_class = TransactionForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["document"] = get_object_or_404(Document, 
+            doctype__company=self.kwargs["company"], pk=self.kwargs["document"])
+        return kwargs
+
+
+class TransactionDetailView(views.DetailView):
+    """Detalle de una transacción."""
+    model = Transaction
+    company_field = "document__doctype__company"
 
 
 class AccountPayableView(views.TemplateView):
@@ -27,8 +47,45 @@ class AccountReceivableView(views.TemplateView):
     template_name = "finance/account_receivable.html"
 
 
+class AccountReceivablePersonBalanceListView(views.ListView):
+    """Listado de personas con balance pendiente de pago."""
+    model = Person
+    template_name = "finance/account_receivable_person_list.html"
+    title = _l("Personas con balance pendiente de pago")
+
+    def get_queryset(self):
+        qs = Person.objects.all()
+        # Solo los tipos de doc. que afectan la cuenta por cobrar.
+        types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
+        qs = qs.annotate(
+            total=Sum(Case(When(document__doctype__generic_type__in=types, 
+                then=F("document__total")))),
+            payments=Sum(Case(When(document__doctype__generic_type__in=types,
+                then=F("document__transaction__amount")))),
+            balance=F("total")-F("payments"),
+            available=F("credit_limit")-F("balance")
+        )
+        self.totals = qs.aggregate(
+            Sum("credit_limit"), 
+            Sum("available"),
+            Sum("total"),
+            Sum("payments"),
+            Sum("balance"),
+        )
+        return qs
+
+
+class AccountReceivablePersonBalanceDetailView(views.DetailView):
+    """Detalle del balance de una persona y sus facturas pendientes de pago."""
+    model = Person
+    template_name = "finance/account_receivable_person_detail.html"
+    
+    def get_title(self):
+        return "%s %s" % (_("Balance pendiente para"), self.get_object())
+
+
 class AccountReceivableDocumentListView(views.ListView):
-    """Listado de documentos pendients de pago."""
+    """Listado de documentos pendientes de pago."""
     model = Document
     template_name = "finance/account_receivable_document_list.html"
     title = _l("Documentos pendientes de pago")
@@ -37,6 +94,7 @@ class AccountReceivableDocumentListView(views.ListView):
         qs = Document.accept_payments_objects.all() # Docs que aceptan pagos.
         qs = qs.annotate(payments=Sum("transaction__amount"))
         qs = qs.annotate(balance=F("total")-F("payments"))
+        self.totals = qs.aggregate(Sum("total"), Sum("payments"), Sum("balance"))
         return qs
 
 

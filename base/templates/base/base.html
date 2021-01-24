@@ -84,7 +84,7 @@
 
 
     {% block frame %}
-    <div class="row h-100 px-2 pb-5">
+    <div class="row px-2 pb-5">
         <aside id="section-left" class="col col-12 col-sm-12 col-md-3 col-lg-2 bg-white border-end pt-2">
             {% block frame_left %}
             <nav aria-label="Docs navigation">
@@ -110,9 +110,11 @@
                 </div>
                 {% endblock %}
             </aside>
-            <main class="pt-3 pb-1" style="height: 600px; overflow: scroll;">
+            <main class="pt-3 pb-1" style="height: 600px; overflow: auto;" id="main">
 
-                <div class="container">{% bootstrap_messages request %}</div>
+                <div class="container">
+                    {% bootstrap_messages request %}
+                </div>
                 
                 {% block content %}
                 {% endblock content %}
@@ -146,6 +148,11 @@
     intcomma_elements.forEach(function(element) {
         element.innerText = intcomma(element.innerText);
     });
+
+    // Ajusta el tamaño del elemento 'main' para que su contenido se muestre completo.
+    var main = document.getElementById("main");
+    var body = document.querySelector("body");
+    main.style.height = body.offsetHeight - 150 + "px";
 
 </script>
 

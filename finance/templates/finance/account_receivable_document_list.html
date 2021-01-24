@@ -1,5 +1,6 @@
 {% extends 'finance/list.html' %}
 {% load i18n %}
+{% load humanize %}
 {% load base %}
 
 
@@ -28,14 +29,24 @@
                         {% else %}
                             {{ obj.get_person_name }}
                         {% endif %}
-                    <td class="text-end">{{ obj.total }}</td>
+                    <td class="text-end">{{ obj.total|intcomma }}</td>
                     <td class="text-end">
-                        <a href="{% url 'finance-account-receivable-document-detail' company=company.pk pk=obj.pk %}">{{ obj.payments }}</a>
+                        <a href="{% url 'finance-account-receivable-document-detail' company=company.pk pk=obj.pk %}">
+                            {{ obj.payments|intcomma }}
+                        </a>
                     </td>
-                    <td class="text-end">{{ obj.balance }}</td>
+                    <td class="text-end">{{ obj.balance|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
+            <tfoot class="table-light fw-bold">
+                <tr>
+                    <td colspan="3"></td>
+                    <td class="text-end">{{ view.totals.total__sum|intcomma }}</td>
+                    <td class="text-end">{{ view.totals.payments__sum|intcomma }}</td>
+                    <td class="text-end">{{ view.totals.balance__sum|intcomma }}</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
 </div>

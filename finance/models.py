@@ -9,9 +9,10 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 
 from unoletutils.libs import utils
+from unoletutils.models import ModelBase
 
 
-class PaymentMethod(utils.ModelBase):
+class PaymentMethod(ModelBase):
     """Forma de pago."""
 
     tags = None
@@ -42,7 +43,7 @@ class PaymentMethod(utils.ModelBase):
         return super().save(*args, **kwargs)
         
 
-class Currency(utils.ModelBase):
+class Currency(ModelBase):
     """
     Moneda.
 
@@ -95,7 +96,7 @@ class Currency(utils.ModelBase):
         return qs.last()
 
 
-class Tax(utils.ModelBase):
+class Tax(ModelBase):
     """
     Configura un tipo de impuesto.
     """
@@ -133,7 +134,7 @@ class Tax(utils.ModelBase):
         return self.value 
 
 
-class TaxReceipt(utils.ModelBase):
+class TaxReceipt(ModelBase):
     """
     Comprobante fiscal.
     """
@@ -221,7 +222,7 @@ class TaxReceipt(utils.ModelBase):
         return ncf
 
 
-class TaxReceiptNumber(utils.ModelBase):
+class TaxReceiptNumber(ModelBase):
     """
     Número de comprobante físcal (NCF).
     """
@@ -264,7 +265,7 @@ class TaxReceiptNumber(utils.ModelBase):
         self.number = self.tax_receipt.validate_tax_receipt_number(self.number)
 
 
-class TaxReceiptAuthorization(utils.ModelBase):
+class TaxReceiptAuthorization(ModelBase):
     """
     Registra nueva secuencia de Comprobante Fiscal.
 
@@ -445,7 +446,7 @@ class TaxReceiptAuthorization(utils.ModelBase):
         return TaxReceiptNumber.objects.filter(authorization=self)
 
 
-class Transaction(utils.ModelBase):
+class Transaction(ModelBase):
     """
     Transacción contable.
     
@@ -465,11 +466,19 @@ class Transaction(utils.ModelBase):
     La moneda será la misma del documento. La tasa no necesariamente.
     """
 
+    COMPANY_FIELD_NAME = "document__doctype__company"
+
     company = None # La empresa será document.doctype.company
 
     document = models.ForeignKey("document.Document", on_delete=models.CASCADE)
 
-    amount = models.DecimalField(_l("monto"), max_digits=22, decimal_places=2)
+    # Monto en moneda local.
+    amount = models.DecimalField(_l("monto"), max_digits=24, decimal_places=4,
+    editable=False)
+
+    # Monto introduccido por el usuario (en la misma moneda del documento).
+    entry_amount = models.DecimalField(_l("monto introduccido"), max_digits=22, 
+    decimal_places=2)
 
     concept = models.CharField(_l("concepto"), max_length=200, blank=True)
 
@@ -499,13 +508,28 @@ class Transaction(utils.ModelBase):
         ordering = ["-create_date"]
 
     def __str__(self):
-        return f"{self.amount:,}"
+        return "{:,}".format(getattr(self, "amount", None) or 0)
+
+    def get_reverse_kwargs(self):
+        return {
+            "company": self.document.doctype.company.pk, 
+            "document": self.document.pk,
+            "pk": self.pk,
+        }
 
     def save(self, *args, **kwargs):
         # Si no se indica un nombre de persona, 
         # este será el de la persona elegida.
         if not self.person_name:
             self.person_name = str(self.person or "")
+
+        # La tasa será la introduccida o la tasa del documento.
+        if not self.currency_rate:
+            self.currency_rate = (self.document.currency_rate or 
+                self.document.currenty.rate)
+
+        # El monto lo obtenemos del monto introduccido por la tasa de la moneda.
+        self.amount = self.entry_amount * self.currency_rate
 
         return super().save(*args, **kwargs)
 

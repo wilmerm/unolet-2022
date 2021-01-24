@@ -7,11 +7,27 @@ urlpatterns = [
 
     path("", views.IndexView.as_view(), name="finance-index"),
 
+    path("transaction/<int:document>/create/", 
+    views.TransactionCreateView.as_view(), 
+    name="finance-transaction-create"),
+
+    path("transaction/<int:document>/<int:pk>/",
+    views.TransactionDetailView.as_view(), 
+    name="finance-transaction-detail"),
+
     path("account/payable/", views.AccountPayableView.as_view(),
     name="finance-account-payable"),
 
     path("account/receivable/", views.AccountReceivableView.as_view(), 
     name="finance-account-receivable"),
+
+    path("account/receivable/person/list/", 
+    views.AccountReceivablePersonBalanceListView.as_view(), 
+    name="finance-account-receivable-person-list"),
+
+    path("account/receivable/person/list/<int:pk>/",
+    views.AccountReceivablePersonBalanceDetailView.as_view(),
+    name="finance-account-receivable-person-detail"),
 
     path("account/receivable/document/list/", 
     views.AccountReceivableDocumentListView.as_view(), 

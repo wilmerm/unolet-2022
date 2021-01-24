@@ -40,6 +40,15 @@
                 total: 0,
             },
 
+            select_all_movements: false, // checkbox que seleciona todos los movimientos.
+            
+            // Movimiento selecionado para eliminarse en espera de confirmación del usuario.
+            selected_movement_for_delete: {
+                id: null,
+                number: null, 
+                name: "",
+            }, 
+
             // Errores del formulario de movimientos.
             errors: {
                 global: [],
@@ -76,7 +85,7 @@
     methods: {
         intcomma(num) {
             try {
-                return num.toString().replace(/B(?=(d{3})+(?!d))/g, ",");
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             } catch (error) {
                 return num;
             }
@@ -102,6 +111,13 @@
             this.movement.available = item.available;
             this.movement.price = item.max_price;
             this.search.selected_item = item;
+            this.search = {
+                text: "",
+                items: [],
+                count: 0, 
+                selected_item: {}
+            }
+
         },
 
         // Al buscar un artículo en el formulario de movimiento.
@@ -197,6 +213,44 @@
             this.movement = movement;
         },
 
+        // Abre el cuadro de confirmación para eliminar un movimiento.
+        onDeleteMovement(movement) {
+            this.selected_movement_for_delete = movement;
+            this.showModal("movement-confirm-delete-modal");
+        },
+        
+        // Al cancelar la eliminación de un movimiento.
+        onCancelDeleteMovement() {
+            this.selected_movement_for_delete = {id: null, number: null, name: ""};
+        },
+
+        // Al confirmar la eliminación del movimiento, este se eliminará.
+        onConfirmDeleteMovement() {
+            let formData = new FormData();
+            formData.append("id", this.selected_movement_for_delete.id);
+
+            fetch(URLS.api_inventory_movement_delete, {
+                method: 'POST',
+                headers: {'X-CSRFToken': this.CSRF_TOKEN},
+                body: formData,
+                mode: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Si ocurren errores en el servidor.
+                if (data.errors) {
+                    try {
+                        this.errors = JSON.parse(data.errors);
+                    } catch (error) {
+                        this.errors = data.errors;
+                    }
+                } else {
+                    this.selected_movement_for_delete = {id: null, number: null, name: ""};
+                    this.update();
+                }
+            });
+        },
+
         // Al guardar el movimiento.
         onSaveMovement() {
             let formData = new FormData();
@@ -209,6 +263,8 @@
             formData.append("discount_percent", this.movement.discount_percent);
             formData.append("discount", this.movement.discount);
             formData.append("tax_already_included", this.movement.tax_already_included);
+
+            console.log(this.movement.id, this.DOCUMENT_PK, this.movement.item_i)
 
             fetch(URLS.api_inventory_movement_form, {
                 method: 'POST',
@@ -224,6 +280,7 @@
                         } catch (error) {
                             this.errors = data.errors;
                         }
+                        console.error(data.errors);
                     } else {
                         let modalEl = document.getElementById('movement-add-modal');
                         let modal = bootstrap.Modal.getInstance(modalEl);

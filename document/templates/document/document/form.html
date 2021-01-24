@@ -31,6 +31,15 @@
                             {% if form.number %}{% bootstrap_field form.number %}{% endif %}
                         </div>
                     </div>
+
+                    <div class="row border-bottom p-1">
+                        <div class="col col-12 col-sm-6 col-md-4">
+                            {% if form.date %}{% bootstrap_field form.date %}{% endif %}
+                        </div>
+                        <div class="col col-12 col-sm-6 col-md-4">
+                            {% if form.expiration_date %}{% bootstrap_field form.expiration_date %}{% endif %}
+                        </div>
+                    </div>
                     
                     <div class="row border-bottom p-1">
                         <div class="col col-12 col-sm-6">
@@ -69,10 +78,32 @@
                 </form>
             </div>
             <div class="col col-12 col-md-5">
-                <!--  -->
-                {% history object extra_classes="shadow-sm" %}
-                <hr>
-                <div class="container-fluid border p-3 bg-white shadow-sm" style="max-height: 512px; overflow: auto;">
+                <!-- Info widgets -->
+                <!-- General info. -->
+                <div class="container-fluid border p-3 mb-2 bg-white shadow-sm">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>{% svg 'calculator' %} {% trans 'Total: ' %}</th>
+                                <td class="text-end">{% vue 'intcomma(document.amount)' %}</td>
+                            </tr>
+                            <tr>
+                                <th>{% svg 'cash-stack' %} {% trans 'Pagado: ' %}</th>
+                                <td class="text-end">{% vue 'intcomma(document.payments_sum)' %}</td>
+                            </tr>
+                            <tr>
+                                <th>{% svg 'graph-up' %} {% trans 'Balance: ' %}</th>
+                                <td class="text-end">{% vue 'intcomma(document.balance)' %}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- changes history. -->
+                <div class="mb-2">
+                    {% history object extra_classes="shadow-sm" %}
+                </div>
+                <!-- notes. -->
+                <div class="container-fluid border p-3 mb-2 bg-white shadow-sm" style="max-height: 512px; overflow: auto;">
                     <textarea v-model="content_new_note" class="form-control mb-1" cols="30" rows="2" placeholder="{% trans 'Nueva nota...' %}"></textarea>
                     <button @click="onAddNote" class="btn btn-secondary btn-sm w-100">{% trans 'Enviar nota' %}</button>
                     <hr>
@@ -102,7 +133,7 @@
             <thead>
                 <tr>
                     <th></th>
-                    <th><input type="checkbox"></th>
+                    <th><input type="checkbox" v-model="select_all_movements"></th>
                     <th>{% trans 'No.' %}</th>
                     <th>{% trans 'Referencia' %}</th>
                     <th>{% trans 'Nombre' %}</th>
@@ -117,9 +148,9 @@
                 <tr v-for="obj in movements">
                     <td>
                         <a @click="onEditMovement(obj)" class="py-0 px-1">{% svg 'pencil-fill' size='1rem' fill="var(--warning)" %}</a>
-                        <a class="py-0 px-1">{% svg 'x-circle-fill' size='1rem' fill="var(--danger)" %}</a>
+                        <a @click="onDeleteMovement(obj)" class="py-0 px-1">{% svg 'x-circle-fill' size='1rem' fill="var(--danger)" %}</a>
                     </td>
-                    <td class="text-center"><input type="checkbox"></td>
+                    <td class="text-center"><input type="checkbox" :checked=select_all_movements></td>
                     <td>{% vue 'obj.number' %}</td>
                     <td>{% vue 'obj.item__codename' %}</td>
                     <td>{% vue 'obj.name' %}</td>
@@ -140,34 +171,14 @@
     </div>
     <!-- movement-add-modal -->
     <div class="modal fade" id="movement-add-modal" tabindex="-1" aria-labelledby="Movement Add" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-light">
                 <div class="modal-header">
                     <h5 class="modal-title" id="movement-add-modal-label">{% trans 'Nuevo movimiento' %}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Item search. -->
-                    <div>
-                        <input type="search" v-model="search.text" class="form-control" placeholder="..." v-on:input="onSearch">
-                        <table v-if="search.count" class="table table-sm table-hover mt-1">
-                            <thead>
-                                <th class="text-start">{% trans 'Nombre' %}</th>
-                                <th class="text-end">{% trans 'Precio' %}</th>
-                                <th class="text-end">{% trans 'Disponible' %}</th>
-                            </thead>
-                            <tbody>
-                                <tr v-for="item in search.items" :id="'item-'+item.id" v-on:click="onSelect(item)">
-                                    <td>{% vue 'item.codename' %} | {% vue 'item.name' %}</td>
-                                    <td class="text-end">{% vue 'item.max_price' %}</td>
-                                    <td class="text-end">{% vue 'item.available' %}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <ul v-if="errors.item" class="errorlist">
-                            <li v-for="error in errors.item" class="text-danger small">{% vue 'error.message' %}</li>
-                        </ul>
-                    </div>
+
                     <!-- {# Movement form. #}-->
                     <div class="container-fluid">
                         <!-- {# Global errores. #} -->
@@ -177,20 +188,46 @@
                         <!-- {# End Global errores. #} -->
                         <input type="number" id="id_movement_id" v-model="movement.id">
                         <input type="number" id="id_movement_item_id" v-model="movement.item_id">
+                        <!-- Item search. -->
                         <div class="row">
-                            <div class="col col-12 col-sm-4 col-md-4 col-lg-4">
+                            <div class="col col-12 position-relative z-index-5000">
+                                <input type="search" v-model="search.text" class="form-control" placeholder="{% trans 'Buscar artículo...' %}" v-on:input="onSearch">
+                                <div v-if="search.count" class="shadow border position-absolute bg-white" style="max-height: 300px; overflow-y: auto; width: 97%">
+                                    <table class="table table-sm table-hover m-0 mt-1">
+                                        <thead>
+                                            <th class="text-start">{% trans 'Nombre' %}</th>
+                                            <th class="text-end">{% trans 'Precio' %}</th>
+                                            <th class="text-end">{% trans 'Disponible' %}</th>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="item in search.items" :id="'item-'+item.id" v-on:click="onSelect(item)">
+                                                <td>{% vue 'item.codename' %} | {% vue 'item.name' %}</td>
+                                                <td class="text-end">{% vue 'item.max_price' %}</td>
+                                                <td class="text-end">{% vue 'item.available' %}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <ul v-if="errors.item" class="errorlist">
+                                    <li v-for="error in errors.item" class="text-danger small">{% vue 'error.message' %}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col col-12 col-sm-4">
                                 <label class="w-100">{% trans 'Referencia' %}
                                     <input type="text" v-model="movement.item__codename" class="form-control" readonly>
                                 </label>
                             </div>
-                            <div class="col col-12 col-sm-8 col-md-8 col-lg-8">
+                            <div class="col col-12 col-sm-8">
                                 <label class="w-100">{% trans 'Nombre' %}
                                     <input type="text" v-model="movement.name" class="form-control">
                                 </label>
                             </div>
                         </div>
+                        <hr>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Cantidad' %}
                                     <input type="number" v-model="movement.quantity" class="form-control" min="0">
                                 </label>
@@ -198,14 +235,14 @@
                                     <li v-for="error in errors.quantity" class="text-danger small">{% vue 'error.message' %}</li>
                                 </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Disponible' %}
                                     <input type="number" v-model="movement.available" class="form-control" readonly>
                                 </label>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Precio' %}
                                     <input type="number" v-model="movement.price" class="form-control" min="0">
                                 </label>
@@ -213,12 +250,12 @@
                                     <li v-for="error in errors.price" class="text-danger small">{% vue 'error.message' %}</li>
                                 </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Precio mínimo' %}
                                     <input type="number" v-model="movement.min_price" class="form-control" readonly>
                                 </label>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <div class="form-check" title="{% trans 'Indica que el impuesto ya está incluido en el monto (precio) especificado, entonces se extraerá el impuesto del monto indicado (si aplica).' %}">
                                     <label class="w-100 form-check-label">{% trans 'Impuesto ya incluido' %}
                                         <input type="checkbox" v-model="movement.tax_already_included" class="form-check-input">
@@ -228,7 +265,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Descuento %' %}
                                     <input type="number" v-model="movement.discount_percent" class="form-control" min="0">
                                 </label>
@@ -236,14 +273,14 @@
                                     <li v-for="error in errors.discount" class="text-danger small">{% vue 'error.message' %}</li>
                                 </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Descuento total' %}
                                     <input type="number" v-model="movement.discount" class="form-control" readonly>
                                 </label>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Impuesto' %}
                                     <input type="number" v-model="movement.tax" class="form-control" readonly>
                                 </label>
@@ -251,7 +288,7 @@
                                     <li v-for="error in errors.tax" class="text-danger small">{% vue 'error.message' %}</li>
                                 </ul>
                             </div>
-                            <div class="col col-6 col-sm-4 col-md-3">
+                            <div class="col col-6 col-sm-4">
                                 <label class="w-100">{% trans 'Total' %}
                                     <input type="number" v-model="movement.total" class="form-control" readonly>
                                 </label>
@@ -267,21 +304,40 @@
         </div>
     </div>
     <!-- End Movement modal. -->
+    <!-- Movement confirm delete Modal. -->
+    <div class="modal" id="movement-confirm-delete-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{% trans 'Confirme la eliminación del movimiento' %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans '¿Seguro que desea eliminar el movimiento' %} <b>{% vue 'selected_movement_for_delete.name' %}</b> {% trans 'de número' %} <b>{% vue 'selected_movement_for_delete.number' %}?</b></p>
+                </div>
+                <div class="modal-footer">
+                    <button @click="onCancelDeleteMovement" type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cancelar' %}</button>
+                    <button @click="onConfirmDeleteMovement" type="button" class="btn btn-danger" data-bs-dismiss="modal">{% trans 'Eliminar' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Movement confirm delete Modal. -->
     <!-- Message Modal. -->
     <div class="modal" id="message-modal" tabindex="-1">
         <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">{% vue 'message.title' %}</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{% vue 'message.title' %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>{% vue 'message.content' %}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cerrar' %}</button>
+                </div>
             </div>
-            <div class="modal-body">
-              <p>{% vue 'message.content' %}</p>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cerrar' %}</button>
-            </div>
-          </div>
         </div>
     </div>
     <!-- End Message Modal. -->
@@ -299,6 +355,7 @@
         api_document_document_documentnote_delete: "{% if object.pk %}{% url 'api-document-document-documentnote-delete' company=company.pk document=object.pk  %}{% endif %}",
         api_inventory_item_list: "{% url 'api-inventory-item-list' company=company.pk %}",
         api_inventory_movement_form: "{% if object.pk %}{% url 'api-inventory-movement-form' company=company.pk document=object.pk %}{% endif %}",
+        api_inventory_movement_delete: "{% if object.pk %}{% url 'api-inventory-movement-delete' company=company.pk document=object.pk %}{% endif %}",
         api_finance_currency_detail: "{% url 'api-finance-currency-detail' company=company.pk %}",
     }
 

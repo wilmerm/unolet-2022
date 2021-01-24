@@ -11,7 +11,7 @@
 {% block content %}
 <div class="container">
     <div class="row">
-        <div class="col col-0 {% if object.get_img %}col-sm-3 col-md-4{% endif %} p-2">
+        <div class="col col-0 {% if object.get_img %}col-sm-3{% endif %} p-2">
             <img src="{{ object.get_img }}" alt="" class="w-100 h-auto">
         </div>
         <div class="col col-12 {% if object.get_img %}col-sm-9 col-md-8{% endif %}">

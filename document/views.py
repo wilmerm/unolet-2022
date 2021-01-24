@@ -85,6 +85,17 @@ class DocumentListView(BaseDocument, ListView):
             ("total", _l("Total")),
             ("get_balance", _l("Balance")),
         ),
+        DocumentType.INVOICE: (
+            ("get_number", _l("Número")),
+            ("create_date", _l("Fecha")),
+            ("warehouse", _l("Almacén")),
+            ("get_person_name", _l("Suplidor")),
+            ("amount", _l("Importe")),
+            ("discount", _l("Descuento")),
+            ("tax", _l("Impuesto")),
+            ("total", _l("Total")),
+            ("get_balance", _l("Balance")),
+        ),
     }
 
     list_display = LIST_DISPLAY_DICT[None]
@@ -236,6 +247,8 @@ def document_detail_jsonview(request, company: int,
             "doctype__tax_receipt__name": getattr(tax_receipt, "name", None),
             "doctype__tax_receipt__is_active": getattr(
                 tax_receipt, "is_active", False),
+            "payments_sum": document.get_payments_sum(),
+            "balance": document.get_balance(),
         },
         "movements": list(movement_qs.values("id", "number", "item_id",
             "item__codename", "item__name", "name", "quantity", "price",

@@ -1,0 +1,35 @@
+{% extends 'person/list.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load base %}
+
+
+{% block content %}
+<div class="container">
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered table-resize">
+            <thead class="table-light">
+                <tr>
+                    <th>{% trans 'Identificación' %}</th>
+                    <th>{% trans 'Nombre' %}</th>
+                    <th>{% trans 'Es suplidor' %}</th>
+                    <th>{% trans 'Límite de crédito' %}</th>
+                    <th>{% trans 'Balance' %}</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in object_list %}
+                <tr>
+                    <td><a href="{{ obj.get_absolute_url }}"><img src="{{ obj.get_img }}" alt=""> {{ obj.identification }}</a></td>
+                    <td>{{ obj.name }}</td>
+                    <td class="text-center">{{ obj.is_supplier|readable }}</td>
+                    <td class="text-end">{{ obj.credit_limit }}</td>
+                    <td class="text-end">{{ obj.get_balance|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock content %}
