@@ -59,6 +59,9 @@ def get_data(name: str, override: bool=True) -> str:
     archivo con el nombre indicado.
     
     """
+    if "/" in name:
+        name = name.split("/")[-1]
+        
     if not ".svg" in name:
         name += ".svg"
 

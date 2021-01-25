@@ -26,7 +26,7 @@ class DocumentForm(ModelForm):
         
         warehouse_qs = Warehouse.active_objects.filter(company=self.company.pk)
         doctype_qs = DocumentType.active_objects.filter(company=self.company.pk, 
-            generic_type=self.generictype)
+            generic=self.generictype)
         person_qs = Person.active_objects.filter(company=self.company.pk)
         currency_qs = Currency.objects.filter(company=self.company.pk)
 

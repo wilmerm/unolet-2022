@@ -37,7 +37,7 @@ class ItemTest(BaseTestCase):
         input_doctype = copy.copy(input_document.doctype)
         input_doctype.pk = None
         input_doctype.code = "test2"
-        input_doctype.generic_type = input_doctype.INVENTORY_INPUT # tipo entrada.
+        input_doctype.generic = input_doctype.INVENTORY_INPUT # tipo entrada.
         input_doctype.save()
         input_document.pk = None
         input_document.doctype = input_doctype
@@ -63,7 +63,7 @@ class ItemTest(BaseTestCase):
         output_doctype = copy.copy(output_document.doctype)
         output_doctype.pk = None
         output_doctype.code = "test3"
-        output_doctype.generic_type = output_doctype.INVENTORY_OUTPUT # de tipo salida.
+        output_doctype.generic = output_doctype.INVENTORY_OUTPUT # de tipo salida.
         output_doctype.save()
         output_document.pk = None
         output_document.doctype = output_doctype
@@ -78,7 +78,7 @@ class ItemTest(BaseTestCase):
         other_doctype = copy.copy(other_document.doctype)
         other_doctype.pk = None
         other_doctype.code = "test4"
-        other_doctype.generic_type = other_doctype.PURCHASE_ORDER # No afecta el inventario.
+        other_doctype.generic = other_doctype.PURCHASE_ORDER # No afecta el inventario.
         other_doctype.save()
         other_document.pk = None
         other_document.doctype = other_doctype
@@ -95,7 +95,7 @@ class ItemTest(BaseTestCase):
         doctype = copy.copy(document.doctype)
         doctype.pk = None
         doctype.code = "TRANS"
-        doctype.generic_type = document.doctype.__class__.TRANSFER
+        doctype.generic = document.doctype.__class__.TRANSFER
         doctype.save()
         document.doctype = doctype
         transfer_warehouse = copy.copy(document.warehouse)
@@ -117,7 +117,7 @@ class ItemTest(BaseTestCase):
         doctype = copy.copy(document.doctype)
         doctype.pk = None
         doctype.code = "test5"
-        doctype.generic_type = doctype.PURCHASE # Afecta el inv. como entrada.
+        doctype.generic = doctype.PURCHASE # Afecta el inv. como entrada.
         doctype.save()
         document.pk = None
         document.doctype = doctype

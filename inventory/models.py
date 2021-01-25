@@ -1,12 +1,12 @@
 from django.db import models
-from django.db.models import Sum, F
+from django.db.models import Sum, Avg, F
 from django.core.exceptions import ValidationError
 from django.core.validators import (MinValueValidator, MaxValueValidator)
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.urls import reverse_lazy
 
-from unoletutils.libs import utils
+from unoletutils.libs import utils, icons
 from unoletutils.models import ModelBase
 
 
@@ -77,6 +77,8 @@ class Item(ModelBase):
     """
     Artículo de inventario.
     """
+    ICON = "/static/img/box.svg"
+
     # Código único del artículo para cada empresa.
     code = models.CharField(_l("código"), max_length=8, editable=False)
     
@@ -135,7 +137,7 @@ class Item(ModelBase):
             kwargs={"company": self.company.pk, "pk": self.pk})
 
     @classmethod
-    def _get_next_code(cls, company):
+    def get_next_code(cls, company) -> str:
         """Obtiene el siguiente código disponible para la compañia indicada."""
         return str(Item.objects.filter(company=company).count() + 1)
     
@@ -160,7 +162,7 @@ class Item(ModelBase):
     
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.code = self._get_next_code(self.company)
+            self.code = self.get_next_code(self.company)
         self.codename = " ".join(self.codename.split()).upper()
         self.update_tags()
         return super().save(*args, **kwargs)
@@ -169,12 +171,9 @@ class Item(ModelBase):
         """Obtiene la cantidad disponible global de este artículo."""
         from document.models import Document
         
-        inputs = Movement.input_objects.filter(item=self, 
-            document__doctype__company=self.company)
-        outputs = Movement.output_objects.filter(item=self, 
-            document__doctype__company=self.company)
-        trans = Movement.transfer_objects.filter(item=self, 
-            document__doctype__company=self.company)
+        inputs = Movement.input_objects.filter(item=self)
+        outputs = Movement.output_objects.filter(item=self)
+        trans = Movement.transfer_objects.filter(item=self)
 
         if warehouse != None:
             inputs = inputs.filter(document__warehouse=warehouse)
@@ -186,6 +185,13 @@ class Item(ModelBase):
         output_sum = outputs.aggregate(s=models.Sum("quantity"))["s"] or 0
         return input_sum - output_sum
 
+    def get_average_cost(self):
+        """Obtiene el costo promedio de este artículo."""
+        from document.models import DocumentType
+        generic_types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_COST
+        qs = self.movement_set.filter(document__doctype__generic__in=generic_types)
+        return qs.aggregate(a=Avg("total"))["a"] or 0
+
 
 class InputMovementManager(models.Manager):
     """Manager para movimientos que afectan el inventario como entrada."""
@@ -194,7 +200,10 @@ class InputMovementManager(models.Manager):
         from document.models import DocumentType
         generic_types = DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_INPUT
         return super().get_queryset().filter(
-            document__doctype__generic_type__in=generic_types)
+            document__doctype__generic__in=generic_types)
+        formula = ((F("price") * F("quantity")) - F("discount")) + F("tax")
+        qs = qs.annotate(total=formula)
+        return qs
 
 
 class OutputMovementManager(models.Manager):
@@ -204,7 +213,10 @@ class OutputMovementManager(models.Manager):
         from document.models import DocumentType
         generic_types = DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_OUTPUT
         return super().get_queryset().filter(
-            document__doctype__generic_type__in=generic_types)
+            document__doctype__generic__in=generic_types)
+        formula = ((F("price") * F("quantity")) - F("discount")) + F("tax")
+        qs = qs.annotate(total=formula)
+        return qs
 
 
 class TransferMovementManager(models.Manager):
@@ -212,14 +224,27 @@ class TransferMovementManager(models.Manager):
 
     def get_queryset(self):
         from document.models import DocumentType
-        return super().get_queryset().filter(
-            document__doctype__generic_type=DocumentType.TRANSFER)
+        qs = super().get_queryset().filter(
+            document__doctype__generic=DocumentType.TRANSFER)
+        return qs
+
+
+class MovementManager(models.Manager):
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        formula = ((F("price") * F("quantity")) - F("discount")) + F("tax")
+        qs = qs.annotate(total=formula)
+        return qs
 
 
 class Movement(ModelBase):
     """
     Movimiento de inventario.
     """
+
+    # No elegimos 'item__company' porque el item puede ser nulo.
+    COMPANY_FIELD_NAME = "document__doctype__company"
 
     company = None # la empresa será document.doctype.company
 
@@ -252,7 +277,7 @@ class Movement(ModelBase):
     "monto (precio) especificado, entonces se extraerá el impuesto del monto "
     "indicado (si aplica)."))
 
-    objects = models.Manager()
+    objects = MovementManager()
 
     # Manejador para movimientos en documentos que afectan el inv. como entrada.
     input_objects = InputMovementManager()
@@ -318,6 +343,30 @@ class Movement(ModelBase):
             self.document.calculate()
 
         return out
+
+    def get_img(self):
+        if self.document.is_inventory_input():
+            return "/static/icons/cart-plus-fill.svg"
+        elif self.document.is_inventory_output:
+            return "/static/icons/cart-dash-fill.svg"
+        return "/static/icons/cart3.svg"
+
+    def get_icon(self):
+        if self.document.is_inventory_input():
+            return icons.svg("cart-plus-fill.svg", fill="var(--green)")
+        elif self.document.is_inventory_output:
+            return icons.svg("cart-dash-fill.svg", fill="var(--red)")
+        return icons.svg("cart3.svg")
+
+    def get_total_formula(self):
+        """expresión usada para calcular el total en un queryset con annotate"""
+        return ((F("price") * F("quantity")) - F("discount")) + F("tax")
+
+    def get_local_total_formula(self):
+        """Igual que get_total_formula pero tomando en cuenta la divisa."""
+        if self.document.currency_rate:
+            return self.get_total_formula() * F("document__currency_rate")
+        return self.get_total_formula()
 
     def calculate_tax(self):
         """Calcula el impuesto según el artículo y el documento."""

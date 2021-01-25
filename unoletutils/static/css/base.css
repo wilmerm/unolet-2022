@@ -283,6 +283,9 @@ Tablas.
     color: #454545;
 }
 
+.table a {
+    text-decoration: none;
+}
 
 
 

@@ -165,7 +165,9 @@ def list_action_links_for_object(*objs, defaults="detail update delete", **optio
 
 
 @register.inclusion_tag("tags/detail_field.html")
-def detail_field(request=None, name="", value="", url=""):
+def detail_field(request=None, name="", value="", url=None, img=None):
+    url = url or getattr(value, "get_absolute_url", "")
+    img = img or getattr(value, "get_img", None)
     return {"request": request, "name": name, "value": value, "url": url}
 
 

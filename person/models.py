@@ -193,7 +193,7 @@ class Person(ModelBase):
         Obtiene los documentos que esta persona tiene pendientes de pago.
         """
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
-        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = self.document_set.filter(doctype__generic__in=types)
         qs = qs.annotate(balance=F("total")-Sum("transaction__amount"))
         return qs.filter(balance__gt=0)
 
@@ -202,7 +202,7 @@ class Person(ModelBase):
         Obtiene los documentos que la empresa le debe a esta persona.
         """
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_PAYABLE
-        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = self.document_set.filter(doctype__generic__in=types)
         qs = qs.annotate(balance=F("total")-Sum("transaction__amount"))
         return qs.filter(balance__gt=0)
 
@@ -213,7 +213,7 @@ class Person(ModelBase):
         """
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
         # Solo documentos que afectan la cuenta por cobrar.
-        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = self.document_set.filter(doctype__generic__in=types)
         return qs.aggregate(s=Sum("total")-Sum("transaction__amount")).get("s", 0)
 
     def get_balance_account_payable(self):
@@ -223,7 +223,7 @@ class Person(ModelBase):
         """
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_PAYABLE
         # Solo documentos que afectan la cuenta por cobrar.
-        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = self.document_set.filter(doctype__generic__in=types)
         return qs.aggregate(s=Sum("total")-Sum("transaction__amount")).get("s", 0)
 
     def get_balance(self):
@@ -241,5 +241,5 @@ class Person(ModelBase):
         """
         types = DocumentType.TYPES_THAT_CAN_ACCEPT_PAYMENTS
         # Solo documentos que aceptan pagos.
-        qs = self.document_set.filter(doctype__generic_type__in=types)
+        qs = self.document_set.filter(doctype__generic__in=types)
         return qs.aggregate(s=Sum("total")-Sum("transaction__amount")).get("s", 0)

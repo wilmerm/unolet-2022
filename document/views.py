@@ -115,7 +115,7 @@ class DocumentListView(BaseDocument, ListView):
     def _setup(self, **kwargs):
         generictype = kwargs.get("generictype", self.generictype)
         self.title = self.TITLES[generictype]
-        self.queryset = Document.objects.filter(doctype__generic_type=generictype)
+        self.queryset = Document.objects.filter(doctype__generic=generictype)
         self.list_display = self.LIST_DISPLAY_DICT[generictype]
         self.template_name = f"document/document/{generictype}_list.html"
 
@@ -239,7 +239,7 @@ def document_detail_jsonview(request, company: int,
             "doctype_id": document.doctype.id,
             "doctype__code": doctype.code,
             "doctype__name": doctype.name,
-            "doctype__generic_type": doctype.generic_type,
+            "doctype__generic": doctype.generic,
             "doctype__affect_cost": doctype.affect_cost,
             "doctype__is_active": doctype.is_active,
             "doctype__tax_receipt_id": getattr(tax_receipt, "id", None),
@@ -316,7 +316,7 @@ class DocumentTypeAutocompleteView(autocomplete.Select2QuerySetView):
         generictype = self.kwargs["generictype"]
 
         qs = DocumentType.active_objects.filter(
-            company=company_pk, generic_type=generictype)
+            company=company_pk, generic=generictype)
 
         if self.request.GET.get("q"):
             qs = qs.filter(tags__icontains=text.Text.get_tag(q))

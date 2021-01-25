@@ -10,14 +10,52 @@
 
 {% block content %}
 <div class="container">
-    <div class="row">
+    <div class="row bg-white border shadow-sm p-2">
         <div class="col col-0 {% if object.get_img %}col-sm-3{% endif %} p-2">
-            <img src="{{ object.get_img }}" alt="" class="w-100 h-auto">
+            {% block detail_img %}
+                <img src="{{ object.get_img }}" alt="" class="w-100 h-auto">
+            {% endblock detail_img %}
         </div>
         <div class="col col-12 {% if object.get_img %}col-sm-9 col-md-8{% endif %}">
-            {% for dic in object.get_object_detail %}
-                {% detail_field request=request name=dic.field.verbose_name.title value=dic.display url=dic.value.get_absolute_url %}
-            {% endfor %}
+            {% block is_not_active %}
+                {% if not object.is_active %}
+                    <div class="alert alert-warning">
+                        {% svg 'exclamation-triangle' %}
+                        {% trans 'Este registro está inactivo.' %}
+                    </div>
+                {% endif %}
+            {% endblock %}
+            {% block detail %}
+                {% for dic in object.get_object_detail %}
+                    {% detail_field request=request name=dic.field.verbose_name.title value=dic.display url=dic.value.get_absolute_url %}
+                {% endfor %}
+            {% endblock detail %}
+        </div>
+        <div class="my-2">
+            {% block detail_footer %}
+            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#history-modal">
+                {% svg 'clock' %}
+                {% trans 'Historial de cambios' %}
+            </button>
+            {% endblock %}
+        </div>
+    </div>
+</div>
+
+<!-- history-modal -->
+<div class="modal" tabindex="-1" id="history-modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            {% history object %}
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Cerrar' %}</button>
+        </div>
         </div>
     </div>
 </div>

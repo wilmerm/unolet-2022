@@ -1,0 +1,62 @@
+{% extends 'inventory/detail.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load base %}
+
+
+{% block detail %}
+<div class="container detail">
+    <div class="row">
+        <div class="col col-12 col-sm-4">
+            {% detail_field name="Código" value=object.code %}
+        </div>
+        <div class="col col-12 col-sm-8">
+            {% detail_field name="Referencia" value=object.codename %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col col-12">
+            {% detail_field name="Nombre" value=object.name %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col col-12">
+            {% detail_field name="Descripción" value=object.description %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col col-12 col-sm-6">
+            {% detail_field name="Grupo" value=object.group %}
+        </div>
+        <div class="col col-12 col-sm-6">
+            {% detail_field name="Familia" value=object.family %}
+        </div>
+    </div>
+    <div class="row">
+        <div class="col col-12 col-sm-6 col-md-4">
+            {% detail_field name="Impuesto" value=object.tax %}
+        </div>
+        <div class="col col-12 col-sm-6 col-md-4">
+            {% detail_field name="Disponible" value=object.get_available %}
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col col-12 col-sm-6 col-md-4">
+            {% detail_field name="Precio mínimo" value=object.min_price %}
+        </div>
+        <div class="col col-12 col-sm-6 col-md-4">
+            {% detail_field name="Precio máximo" value=object.max_price %}
+        </div>
+        <div class="col col-12 col-sm-6 col-md-4">
+            {% detail_field name="Costo promedio" value=object.get_average_cost|floatformat:"2"|intcomma %}
+        </div>
+    </div>
+</div>
+{% endblock detail %}
+
+
+{% block detail_footer %}
+    {{ block.super }}
+    <a class="btn btn-secondary" href="{% url 'inventory-item-movement-list' company=company.pk pk=object.pk %}">{% trans 'Movimientos' %}</a>
+{% endblock detail_footer %}

@@ -58,9 +58,9 @@ class AccountReceivablePersonBalanceListView(views.ListView):
         # Solo los tipos de doc. que afectan la cuenta por cobrar.
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
         qs = qs.annotate(
-            total=Sum(Case(When(document__doctype__generic_type__in=types, 
+            total=Sum(Case(When(document__doctype__generic__in=types, 
                 then=F("document__total")))),
-            payments=Sum(Case(When(document__doctype__generic_type__in=types,
+            payments=Sum(Case(When(document__doctype__generic__in=types,
                 then=F("document__transaction__amount")))),
             balance=F("total")-F("payments"),
             available=F("credit_limit")-F("balance")

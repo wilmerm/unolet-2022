@@ -94,7 +94,7 @@ class DocumentType(ModelBase):
 
     name = models.CharField(_l("nombre"), max_length=70)
 
-    generic_type = models.CharField(_l("tipo genérico"), max_length=20, 
+    generic = models.CharField(_l("tipo genérico"), max_length=20, 
     choices=GENERIC_TYPE_CHOICES, 
     help_text=_l("tipo genérico al que pertenece."))
 
@@ -143,7 +143,7 @@ class DocumentType(ModelBase):
 
     def accept_payments(self):
         """Determina si este tipo de documentos acepta pagos."""
-        if self.generic_type in self.TYPES_THAT_CAN_ACCEPT_PAYMENTS:
+        if self.generic in self.TYPES_THAT_CAN_ACCEPT_PAYMENTS:
             return True
         return False
 
@@ -166,7 +166,7 @@ class TransferDocumentManager(models.Manager):
     """Manejador para documentos de tipo transferencia."""
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(doctype__generic_type=DocumentType.TRANSFER)
+        return qs.filter(doctype__generic=DocumentType.TRANSFER)
 
 
 class AcceptPaymentsDocumentManager(models.Manager):
@@ -174,7 +174,7 @@ class AcceptPaymentsDocumentManager(models.Manager):
     def get_queryset(self):
         qs = super().get_queryset()
         return qs.filter(
-            doctype__generic_type__in=DocumentType.TYPES_THAT_CAN_ACCEPT_PAYMENTS)
+            doctype__generic__in=DocumentType.TYPES_THAT_CAN_ACCEPT_PAYMENTS)
 
 
 class Document(ModelBase):
@@ -279,7 +279,7 @@ class Document(ModelBase):
     def get_reverse_kwargs(self):
         """Obtiene el diccionario para construir la URL con reverse."""
         return {"company": self.doctype.company.pk,
-            "generictype": self.doctype.generic_type, "pk": self.pk}
+            "generictype": self.doctype.generic, "pk": self.pk}
 
     def get_absolute_url(self, mode="update"):
         return reverse_lazy(f"document-document-{mode}", 
@@ -311,7 +311,7 @@ class Document(ModelBase):
         """Valida que el campo 'transfer_warehouse'."""
         # La transferencia entre almacenes es exclusiva para los 
         # documentos de tipo transferencia.
-        if self.doctype.generic_type == DocumentType.TRANSFER:
+        if self.doctype.generic == DocumentType.TRANSFER:
             if not self.transfer_warehouse:
                 raise ValidationError(_("Debe indicar el almacén a transferir."))
         elif self.transfer_warehouse:
@@ -337,6 +337,14 @@ class Document(ModelBase):
         self.validate_transfer_warehouse()
         return super().save(*args, **kwargs)
 
+    def is_inventory_input(self):
+        generics = DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_INPUT
+        return self.doctype.generic in generics
+
+    def is_inventory_output(self):
+        generics = DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_OUTPUT
+        return self.doctype.generic in generics
+        
     def calculate(self) -> dict:
         """
         Calcula los totales, actualiza los campos correspondientes y retorna 

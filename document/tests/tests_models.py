@@ -18,7 +18,7 @@ def get_or_create_document():
         company = get_or_create_company()
         warehouse = get_or_create_warehouse()
         doctype = DocumentType(company=company, code="test", name="test", 
-            generic_type=DocumentType.INVOICE)
+            generic=DocumentType.INVOICE)
         doctype.clean()
         doctype.save()
         document = Document(doctype=doctype, warehouse=warehouse)
@@ -52,7 +52,7 @@ class DocumentModelTest(BaseTestCase):
         # Pero el almacén del documento debe ser distinto al de transfeir.
         doctype = copy.copy(document.doctype)
         doctype.pk = None
-        doctype.generic_type = DocumentType.TRANSFER
+        doctype.generic = DocumentType.TRANSFER
         document.doctype = doctype
         document.transfer_warehouse = document.warehouse
         self.assertRaises(ValidationError, document.clean)

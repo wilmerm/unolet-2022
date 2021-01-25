@@ -83,7 +83,6 @@ class QuerysetCapsule:
     def __getattribute__(self, name):
         if name in ("_view", "_queryset", "__iter__"):
             return object.__getattribute__(self, name)
-
         return getattr(self._queryset, name)
 
 

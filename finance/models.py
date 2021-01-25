@@ -478,7 +478,7 @@ class Transaction(ModelBase):
 
     # Monto introduccido por el usuario (en la misma moneda del documento).
     entry_amount = models.DecimalField(_l("monto introduccido"), max_digits=22, 
-    decimal_places=2)
+    decimal_places=2, default=0)
 
     concept = models.CharField(_l("concepto"), max_length=200, blank=True)
 

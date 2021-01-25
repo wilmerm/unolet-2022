@@ -10,7 +10,7 @@ from unoletutils.views import (ListView, DetailView, UpdateView, CreateView,
 from company.models import Company
 from document.models import Document
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
-from inventory.forms import (ItemForm, MovementForm)
+from inventory.forms import (ItemGroupForm, ItemFamilyForm, ItemForm, MovementForm)
 
 
 class Index(TemplateView):
@@ -18,10 +18,59 @@ class Index(TemplateView):
     template_name = "inventory/index.html"
 
 
+class ItemGroupCreateView(CreateView):
+    """Vista para la creación de grupos de artículos."""
+    model = ItemGroup
+    form_class = ItemGroupForm
+
+
+class ItemGroupDetailView(DetailView):
+    """Vista que muestra el detalle de un grupo de artículo."""
+    model = ItemGroup
+
+
+class ItemGroupUpdateView(UpdateView):
+    """Vista para la modificación de groupos artículos."""
+    model = ItemGroup
+    form_class = ItemGroupForm
+    
+
+class ItemGroupListView(ListView):
+    """Listado de grupos de artículos."""
+    model = ItemGroup
+    
+
+class ItemFamilyCreateView(CreateView):
+    """Vista para la creación de familias de artículos."""
+    model = ItemFamily
+    form_class = ItemFamilyForm
+
+
+class ItemFamilyDetailView(DetailView):
+    """Vista que muestra el detalle de un familia de artículo."""
+    model = ItemFamily
+
+
+class ItemFamilyUpdateView(UpdateView):
+    """Vista para la modificación de familias artículos."""
+    model = ItemFamily
+    form_class = ItemFamilyForm
+    
+
+class ItemFamilyListView(ListView):
+    """Listado de familias de artículos."""
+    model = ItemFamily
+    
+
 class ItemCreateView(CreateView):
-    """Vista para la creación e artículos."""
+    """Vista para la creación de artículos."""
     model = Item
     form_class = ItemForm
+
+
+class ItemDetailView(DetailView):
+    """Vista que muestra el detalle de un artículo."""
+    model = Item
 
 
 class ItemUpdateView(UpdateView):
@@ -46,7 +95,35 @@ class ItemListView(ListView):
     list_display_cssclass = {
         "get_available": "text-end",
     }
-    
+
+
+class ItemMovementListView(ListView):
+    """Listado de movimientos de un artículo específico."""
+    model = Movement
+    template_name = "inventory/item_movement_list.html"
+
+    def get_title(self):
+        return "%s %s" % (_("Movimientos del articulo"), self.item)
+
+    def dispatch(self, request, *args, **kwargs):
+        self.item = get_object_or_404(Item, pk=kwargs.pop("item"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return self.item.movement_set.all()
+
+
+class MovementListView(ListView):
+    """Listado de movimienetos."""
+    model = Movement
+    template_name = "inventory/movement_list.html"
+
+
+class MovementDetailView(DetailView):
+    """Detalle de un movimiento."""
+    model = Movement
+    template_name = "inventory/movement_detail.html"
+
 
 # Json views.
 

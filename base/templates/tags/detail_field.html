@@ -1,12 +1,15 @@
 {% load i18n %}
 {% load base %}
-<div class="border-bottom py-2">
-    <div class="fw-bold">{% trans name %}</div>
-    <div class="ps-2">
-        {% if url %}
-            <a href="{{ url }}">{{ value|to_html }}</a>
-        {% else %}
+<div class="label">{% trans name %}</div>
+<div class="value">
+    {% if url %}
+        <a class="text-decoration-none" href="{{ url }}">
+            {% if img %}
+                <img src="{{ img }}" alt="">
+            {% endif %}
             {{ value|to_html }}
-        {% endif %}
-    </div>
+        </a>
+    {% else %}
+        {{ value|to_html }}
+    {% endif %}
 </div>

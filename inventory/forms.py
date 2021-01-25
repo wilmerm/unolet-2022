@@ -6,6 +6,28 @@ from document.models import Document, DocumentType
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
 
 
+class ItemGroupForm(ModelForm):
+    """Formulario para grupos de artículos."""
+
+    class Meta:
+        model = ItemGroup
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+class ItemFamilyForm(ModelForm):
+    """Formulario para familia de artículos."""
+
+    class Meta:
+        model = ItemFamily
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class ItemForm(ModelForm):
     """Formulario para artículos."""
 

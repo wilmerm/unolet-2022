@@ -23,7 +23,7 @@ class DocumentUpdateViewTest(TestCase):
         document = get_or_create_document()
 
         url = reverse(
-            self.url_name.format(generictype=document.doctype.generic_type),
+            self.url_name.format(generictype=document.doctype.generic),
             kwargs={"company": document.doctype.company.id, "pk": document.pk})
 
         self.assertEqual(url, document.get_absolute_url())
@@ -49,7 +49,7 @@ class DocumentUpdateViewTest(TestCase):
         company_2.save()
         # Esta url no será válida porque el documento no pertenece a esa empresa.
         url = reverse(
-            self.url_name.format(generictype=document.doctype.generic_type), 
+            self.url_name.format(generictype=document.doctype.generic), 
             kwargs={"company": company_2.pk, "pk": document.pk})
 
         self.client.login(username="test", password="test")
@@ -64,7 +64,7 @@ class DocumentUpdateViewTest(TestCase):
         document = get_or_create_document()
         # No exite una empresa con pk = 999
         url = reverse(
-            self.url_name.format(generictype=document.doctype.generic_type), 
+            self.url_name.format(generictype=document.doctype.generic), 
             kwargs={"company": 999, "pk": document.pk})
 
         self.client.login(username="test", password="test")
@@ -79,7 +79,7 @@ class DocumentUpdateViewTest(TestCase):
         company.is_active = False
         company.save()
         url = reverse(
-            self.url_name.format(generictype=document.doctype.generic_type), 
+            self.url_name.format(generictype=document.doctype.generic), 
             kwargs={"company": company.pk, "pk": document.pk})
         
         self.client.login(username="test", password="test")
@@ -93,7 +93,7 @@ class DocumentUpdateViewTest(TestCase):
         self.client.login(username="test", password="test")
 
         response = self.client.post(
-            reverse(f"document-document-{document.doctype.generic_type}-create", 
+            reverse(f"document-document-{document.doctype.generic}-create", 
             kwargs={"company": document.doctype.company.id}),
             data={"warehouse": document.warehouse.pk, 
                 "doctype": document.doctype.pk,
