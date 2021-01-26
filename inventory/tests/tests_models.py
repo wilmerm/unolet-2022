@@ -44,13 +44,14 @@ class ItemTest(BaseTestCase):
         input_document.save()
         movement = Movement.objects.create(document=input_document, 
             item=self.item, quantity=10, price=0, discount=0, tax=0)
-
         self.assertEqual(self.item.get_available(input_document.warehouse), 10)
+
         # Modificamos la cantidad del movimiento a 15
         movement.quantity = 15
         movement.save()
         self.assertEqual(
             self.item.get_available(input_document.warehouse), 15)
+
         # Añadimos otro movimiento diferente con el mismo artículo con cantidad 3
         movement2 = copy.copy(movement)
         movement.pk = None
@@ -58,6 +59,7 @@ class ItemTest(BaseTestCase):
         movement.save()
         self.assertEqual(
             self.item.get_available(input_document.warehouse), 18)
+
         # Simulamos crear un documento de salida con un movimiento de 4
         output_document = copy.copy(get_or_create_document())
         output_doctype = copy.copy(output_document.doctype)
@@ -72,6 +74,7 @@ class ItemTest(BaseTestCase):
             item=self.item, quantity=4, price=0, discount=0, tax=0)
         self.assertEqual(
             self.item.get_available(output_document.warehouse), 14)
+
         # Simulamos crear un documento que no afecta el inventario. la cantidad
         # será de 34 pero el disponible deberá seguir en 14 como el anterior.
         other_document = copy.copy(get_or_create_document())
@@ -87,6 +90,7 @@ class ItemTest(BaseTestCase):
             item=self.item, quantity=34, price=0, discount=0, tax=0)
         self.assertEqual(
             self.item.get_available(other_document.warehouse), 14)
+
         # Realizamos una transferencia entre almacenes, y transferimos 1 artículo.
         # en el almacén del documento se restará 1 que se sumará al nuevo 
         # almacén donde serán transferido.
@@ -110,6 +114,10 @@ class ItemTest(BaseTestCase):
         self.assertEqual(self.item.get_available(document.warehouse), 13)
         # +1 en el almacén de entrada = 1
         self.assertEqual(self.item.get_available(document.transfer_warehouse), 1)
+
+         # Los artículos de servicio 'is_service == True' no afectan el inventaio.
+        self.item.is_service = True
+        self.assertEqual(self.item.get_available(), 0)
 
     def test_the_performance_of_the_get_available_method(self):
         """Probamos el rendimiento del método get_available."""

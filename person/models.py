@@ -188,23 +188,47 @@ class Person(ModelBase):
         self.clean_identification_type()
         return super().save(*args, **kwargs)
 
-    def get_document_account_receivable_pending_payment(self):
+    def get_document_account_receivable_pending_payment(self) -> dict:
         """
         Obtiene los documentos que esta persona tiene pendientes de pago.
+
+        returns:
+            {'queryset': Queryset, 'totals': dict}
+
         """
+        out = dict()
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_RECEIVABLE
         qs = self.document_set.filter(doctype__generic__in=types)
         qs = qs.annotate(balance=F("total")-Sum("transaction__amount"))
-        return qs.filter(balance__gt=0)
+        qs = qs.filter(balance__gt=0)
+        out["queryset"] = qs
+        out["totals"] = qs.aggregate(
+            Sum("total"), 
+            Sum("transaction__amount"),
+            Sum("balance")
+        )
+        out["totals"]["count"] = qs.count()
+        return out
 
     def get_document_account_payable_pending_payment(self):
         """
         Obtiene los documentos que la empresa le debe a esta persona.
+
+        returns:
+            {'queryset': Queryset, 'totals': dict}
+
         """
+        out = dict()
         types = DocumentType.TYPES_THAT_CAN_AFFECT_THE_ACCOUNT_PAYABLE
         qs = self.document_set.filter(doctype__generic__in=types)
         qs = qs.annotate(balance=F("total")-Sum("transaction__amount"))
-        return qs.filter(balance__gt=0)
+        out["queryset"] = qs.filter(balance__gt=0)
+        out["totals"] = qs.aggregate(
+            Sum("total"), 
+            Sum("transaction__amount"),
+            Sum("balance")
+        )
+        return out
 
     def get_balance_account_receivable(self):
         """

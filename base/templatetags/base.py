@@ -107,14 +107,49 @@ def pagination(page_obj, request, **kwargs):
 
 @register.inclusion_tag("tags/menu.html")
 def menu(request):
+    """Muestra los módulos de la URL actual a los que el usuario puede tener
+    acceso, en un estilo de menú."""
     return {"request": request}
 
 
 @register.inclusion_tag("tags/modules.html")
 def modules(request):
+    """Muestra los módulos de la URL actual a los que el usuario puede tener 
+    acceso."""
     parent = Module.get_from_request(request)
     module_list = request.user.get_modules(parent=parent)
-    return {"request": request, "module_list": module_list}
+    return {"request": request, "module": parent, "module_list": module_list}
+
+
+@register.inclusion_tag("tags/breadcrumb.html")
+def breadcrumb(request, limit=20):
+    """Muestra el link de módulos desde el actual obteniendo los padres."""
+    links = []
+    current = Module.get_from_request(request)
+
+    if current is None:
+        return {"links": links}
+
+    links.append({
+        "name": str(current),
+        "url": "",
+        "img": current.get_img(),
+        "cssclass": "active",
+    })
+
+    for n in range(limit):
+        current = current.parent
+        if current is None:
+            break
+
+        links.append({
+            "name": str(current),
+            "url": current.get_absolute_url(request.company),
+            "img": current.get_img(),
+            "cssclass": "",
+        })
+    links.reverse()
+    return {"links": links}
 
 
 @register.inclusion_tag("tags/dict_to_ul.html")

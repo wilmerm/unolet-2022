@@ -38,7 +38,11 @@
         </div>
         <div class="col col-12 col-sm-6 col-md-4">
             {% detail_field name="Disponible" value=object.get_available %}
-
+        </div>
+        <div class="col col-12 col-sm-6 col-md-4">
+            <div class="alert alert-info p-2 m-0" title="{% trans 'Este artículo está marcado como de servicio y no afecta el inventario.' %}">
+                {% svg 'info-circle-fill' %} {% trans 'Artículo de servicio' %}
+            </div>
         </div>
     </div>
     <div class="row">
@@ -58,5 +62,5 @@
 
 {% block detail_footer %}
     {{ block.super }}
-    <a class="btn btn-secondary" href="{% url 'inventory-item-movement-list' company=company.pk pk=object.pk %}">{% trans 'Movimientos' %}</a>
+    <a class="btn btn-secondary" href="{% url 'inventory-item-movement-list' company=company.pk item=object.pk %}">{% trans 'Movimientos' %}</a>
 {% endblock detail_footer %}

@@ -7,6 +7,7 @@
 {% block content %}
 <div class="container">
     <div class="table-responsive">
+        {% with object.get_document_account_receivable_pending_payment as dict %}
         <table class="table table-sm table-bordered table-resize">
             <thead class="table-light">
                 <tr>
@@ -19,7 +20,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for obj in object. %}
+                {% for obj in dict.queryset %}
                 <tr>
                     <td><a href="{{ obj.get_absolute_url }}">{{ obj.get_number }}</a></td>
                     <td>{{ obj.date }}</td>
@@ -41,13 +42,14 @@
             </tbody>
             <tfoot class="table-light fw-bold">
                 <tr>
-                    <td colspan="3"></td>
-                    <td class="text-end">{{ view.totals.total__sum|intcomma }}</td>
-                    <td class="text-end">{{ view.totals.payments__sum|intcomma }}</td>
-                    <td class="text-end">{{ view.totals.balance__sum|intcomma }}</td>
+                    <td colspan="3">{{ dict.totals.count|intcomma }} {% trans 'registros.' %}</td>
+                    <td class="text-end">{{ dict.totals.total__sum|intcomma }}</td>
+                    <td class="text-end">{{ dict.totals.transaction__amount__sum|intcomma }}</td>
+                    <td class="text-end">{{ dict.totals.balance__sum|intcomma }}</td>
                 </tr>
             </tfoot>
         </table>
+        {% endwith %}
     </div>
 </div>
 {% endblock content %}

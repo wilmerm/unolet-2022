@@ -116,6 +116,9 @@ class Item(ModelBase):
 
     is_active = models.BooleanField(_l("activo"), default=True)
 
+    is_service = models.BooleanField(_l("es un artículo de servicio"), 
+    default=False)
+
     objects = models.Manager()
 
     active_objects = ItemActiveManager()
@@ -169,6 +172,9 @@ class Item(ModelBase):
 
     def get_available(self, warehouse=None):
         """Obtiene la cantidad disponible global de este artículo."""
+        if self.is_service:
+            return 0
+
         from document.models import Document
         
         inputs = Movement.input_objects.filter(item=self)

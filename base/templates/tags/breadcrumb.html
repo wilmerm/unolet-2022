@@ -1,0 +1,14 @@
+<!-- breadcrumb -->
+<style>
+    .active {
+        font-weight: lighter;
+    }
+</style>
+<nav aria-label="breadcrumb" class="btn-group btn-group-sm">
+    {% for link in links %}
+    <a class="btn btn-white {{ link.cssclass }}" aria-current="page" href="{{ link.url }}">
+        <img src="{{ link.img }}" alt="" style="height: 1rem;"> {{ link.name }}
+    </a>
+    {% endfor %}
+</nav>
+<!-- End breadcrumb -->

@@ -62,10 +62,12 @@ class Module(ModelBase):
 
     def __str__(self):
         return self.name
+
+    def get_absolute_url(self, company):
+        company = int(getattr(company, "pk", company))
+        return reverse_lazy(self.url_name, kwargs={"company": company})
     
     def clean(self):
-        self.name = self.name.lower()
-
         # No puede ser hijo de si mismo.
         if self.parent == self:
             raise ValidationError({"parent": _("No puede ser hijo de si mismo.")})

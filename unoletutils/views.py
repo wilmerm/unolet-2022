@@ -89,15 +89,32 @@ class QuerysetCapsule:
 class BaseView:
     """Clase base de las cuales heredarán nuestras vistas."""
 
+    # Nombre del campo en el modelo que contiene el valor de la empresa.
+    # Por ejemplo, el modelo Document no tiene un campo para la empresa, sino
+    # que este se obtiene de su campo relacionado 'doctype' que si tiene uno.
+    # Entonces para la vista de documentos este campo deberá ser como sigue:
+    # company_field = 'doctype__company'.
     company_field = "company"
-    company_in_url = "company"
-    pk_field = "pk"
-    pk_in_url = "pk"
-    error_list = []
-    company_permission_required = None
+    # Nombre del valor de la empresa en la url.
+    # Ej. .../<int:company>/... company_in_url = 'company'
+    company_in_url = "company" 
+    # Nombre del campo en el modelo que contiene el valor pk.
+    pk_field = "pk" 
+    # Nombre con el cual está identificado el valor pk en la url 
+    # Ej. ../<int:item>/.. pk_in_url = 'item'.
+    pk_in_url = "pk" 
+    # Lista de errores al procesar esta view, 
+    # si hay errores devolverá una respuesta con código de error.
+    error_list = [] 
+    # Persmisos requeridos (str or iter).
+    company_permission_required = None 
+    # Título a mostrar en la página.
     title = ""
+    # Módulo actual.
+    module = None 
 
     def get_title(self):
+        """Obtiene el valor del título que se mostrará en la página."""
         try:
             vnp = str(getattr(self.model._meta, "verbose_name_plural", "")).title()
         except (AttributeError):
@@ -116,6 +133,12 @@ class BaseView:
         return company
 
     def get_object(self, queryset=None):
+        """
+        Método Django que obtiene el objeto actual.
+        Se hicieron algunas modificaciones para asegurarnos de que el objeto 
+        devuelto pertenezca a la empresa actual. (no se puede mostrar un 
+        registro de una empresa en otra.)
+        """
         company = self.get_company()
         company_pk = self.kwargs.get(self.company_in_url)
         pk = self.kwargs.get(self.pk_in_url)
@@ -130,7 +153,6 @@ class BaseView:
             
         # La objeto debe pertenecer a la misma empresa obtenida por url.
         if obj:
-            #obj_company = functools.reduce(getattr, [obj] + self.company_field.split("__"))
             obj_company = obj.getattr(self.company_field)
             if obj_company != company:
                 raise Http404(f"La empresa {company} no es la misma empresa "
@@ -148,6 +170,10 @@ class BaseView:
         return obj
 
     def dispatch(self, request, *args, **kwargs):
+        """
+        Mismo método dispatch Django, en este caso validamos los permisos
+        requeridos en la vista y los permisos del usuario.
+        """
         if self.error_list:
             raise ViewError(". ".join(error_list))
 
@@ -165,6 +191,7 @@ class BaseView:
         context = super().get_context_data(**kwargs)
         user = self.request.user
         company = self.get_company()
+        # Permisos y grupos que posee y pertenece el usuario actual.
         context["user_company_permissions"] = user.get_company_permissions(company)
         context["user_company_groups"] = user.get_company_groups(company)
         return context
