@@ -7,6 +7,8 @@ urlpatterns = [
 
     path("", views.IndexView.as_view(), name="finance-index"),
 
+    # Transaction.
+
     path("transaction/<int:document>/create/", 
     views.TransactionCreateView.as_view(), 
     name="finance-transaction-create"),
@@ -15,8 +17,12 @@ urlpatterns = [
     views.TransactionDetailView.as_view(), 
     name="finance-transaction-detail"),
 
+    # Account paypable.
+
     path("account/payable/", views.AccountPayableView.as_view(),
     name="finance-account-payable"),
+
+    # Account receivable.
 
     path("account/receivable/", views.AccountReceivableView.as_view(), 
     name="finance-account-receivable"),
@@ -46,4 +52,7 @@ urlpatterns = [
 
     path("autocomplete/currency/list/", views.CurrencyAutocompleteView.as_view(),
     name="finance-autocomplete-currency"),
+
+    path("autocomplete/tax/list/", views.TaxAutocompleteView.as_view(),
+    name="finance-autocomplete-tax"),
 ]

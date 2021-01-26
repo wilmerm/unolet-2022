@@ -1,4 +1,9 @@
 from django import forms 
+from django.urls import reverse, reverse_lazy
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
+
+from dal import autocomplete
 
 from base.forms import ModelForm
 from company.models import Company
@@ -38,6 +43,23 @@ class ItemForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.fields["group"] = forms.ModelChoiceField(label=_("Grupo"),
+            queryset=ItemGroup.objects.filter(company=self.company), 
+            widget=autocomplete.ModelSelect2(
+            url=reverse("inventory-autocomplete-itemgroup", 
+            kwargs={"company": self.company.pk})))
+
+        self.fields["family"] = forms.ModelChoiceField(label=_("Familia"),
+            queryset=ItemFamily.objects.filter(company=self.company), 
+            widget=autocomplete.ModelSelect2(
+            url=reverse("inventory-autocomplete-itemfamily", 
+            kwargs={"company": self.company.pk})))
+
+        self.fields["tax"] = forms.ModelChoiceField(label=_("Impuesto"),
+            queryset=ItemFamily.objects.filter(company=self.company), 
+            widget=autocomplete.ModelSelect2(
+            url=reverse("finance-autocomplete-tax", 
+            kwargs={"company": self.company.pk})))
 
 class MovementForm(ModelForm):
     """Formulario para movimientos."""

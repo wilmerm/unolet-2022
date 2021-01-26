@@ -20,6 +20,9 @@ urlpatterns = [
     path("item/list/<int:pk>/update/", views.ItemUpdateView.as_view(), 
     name="inventory-item-update"),
 
+    path("item/list/<int:pk>/delete/", views.ItemDeleteView.as_view(), 
+    name="inventory-item-delete"),
+
     path("item/list/<int:item>/movements/", views.ItemMovementListView.as_view(), 
     name="inventory-item-movement-list"),
 
@@ -67,4 +70,13 @@ urlpatterns = [
     path("api/movement/<int:document>/delete/", views.movement_delete_jsonview,
     name="api-inventory-movement-delete"),
 
+    # django-autocomplete-light
+
+    path("autocomplete/itemgroup/list/", 
+    views.ItemGroupAutocompleteView.as_view(),
+    name="inventory-autocomplete-itemgroup"),
+
+    path("autocomplete/itemfamily/list/", 
+    views.ItemGroupAutocompleteView.as_view(),
+    name="inventory-autocomplete-itemfamily"),
 ]

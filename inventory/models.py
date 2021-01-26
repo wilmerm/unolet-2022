@@ -85,14 +85,13 @@ class Item(ModelBase):
     codename = models.CharField(_l("referencia"), max_length=30, 
     help_text=_l("Puede ser el módelo, serie, identificador, etc. Esta "
     "referencia debería ser única pero puede tener artículos con la misma "
-    "referencia si así lo desea. Unolet le advertirá antes de crear un "
-    "artículo con una referencia que ya existe para evitar duplicados no "
-    "deseados."))
+    "referencia si así lo desea."))
 
-    name = models.CharField(_l("nombre"), max_length=70)
+    name = models.CharField(_l("nombre"), max_length=70,
+    help_text=_l("nombre del artículo. Este será mostrado en los documentos."))
 
     description = models.CharField(_l("descripción"), max_length=500, 
-    blank=True)
+    blank=True, help_text=_l("breve descripción y características del artículo."))
 
     group = models.ForeignKey(ItemGroup, on_delete=models.SET_NULL, null=True, 
     blank=True, verbose_name=_l("grupo"),
@@ -134,10 +133,6 @@ class Item(ModelBase):
 
     def __str__(self):
         return self.codename
-
-    def get_absolute_url(self):
-        return reverse_lazy("inventory-item-update", 
-            kwargs={"company": self.company.pk, "pk": self.pk})
 
     @classmethod
     def get_next_code(cls, company) -> str:

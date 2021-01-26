@@ -4,6 +4,8 @@ from django.utils.translation import gettext as _
 from django.views import generic
 from django.http import JsonResponse, Http404
 
+from dal import autocomplete
+
 from unoletutils.libs import text
 from unoletutils.views import (ListView, DetailView, UpdateView, CreateView, 
     DeleteView, TemplateView, JsonResponseMixin)
@@ -78,6 +80,11 @@ class ItemUpdateView(UpdateView):
     model = Item
     form_class = ItemForm
     
+
+class ItemDeleteView(DeleteView):
+    """Vista para eliminar artículos."""
+    model = Item
+
 
 class ItemListView(ListView):
     """Listado de artículos."""
@@ -231,11 +238,25 @@ def movement_delete_jsonview(request, company, document) -> JsonResponse:
     return JsonResponse({"id": request.POST.get("id"), "delete": True})
     
 
+# django-autocomplete-light
+
+class ItemGroupAutocompleteView(autocomplete.Select2QuerySetView):
+    """Vista dal.autocomplete para ItemGroup."""
+
+    def get_queryset(self):
+        company_pk = self.kwargs["company"]
+        qs = ItemGroup.objects.filter(company=company_pk)
+        if self.request.GET.get("q"):
+            qs = qs.filter(tags__icontains=text.Text.get_tag(q))
+        return qs
 
 
-class MovementCreateView(JsonResponseMixin, CreateView):
-    """Crea un movimiento."""
+class ItemFamilyAutocompleteView(autocomplete.Select2QuerySetView):
+    """Vista dal.autocomplete para ItemFamily."""
 
-    model = Movement
-    form_class = MovementForm
-
+    def get_queryset(self):
+        company_pk = self.kwargs["company"]
+        qs = ItemFamily.objects.filter(company=company_pk)
+        if self.request.GET.get("q"):
+            qs = qs.filter(tags__icontains=text.Text.get_tag(q))
+        return qs
