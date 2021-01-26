@@ -23,9 +23,9 @@ def get_attr(obj, name, default=""):
 @register.filter
 def to_html(value):
     """"""
-    if value is True:
+    if (value is True) or (value in ("True", "true")):
         return format_html('<span class="text-success font-weight-bold">{}<span>', "✅")
-    if value is False:
+    if (value is False) or (value in ("False", "false")):
         return format_html('<span class="text-danger">{}<span>', "⛔")
     if value in (None, ""):
         return ""
@@ -43,11 +43,13 @@ def to_html(value):
 @register.filter
 def readable(value):
     """Convierte el valor a un texto que sea leíble para un humano."""
-    if value is True:
+    if (value is True) or (value in ("True", "true")):
         return _("si")
-    if value is False:
+    if (value is False) or (value in ("False", "false")):
         return _("no")
-    if value in (None, ""):
+    if (value is None) or (value in ("None", "none", "null")):
+        return _("ninguno")
+    if value == "":
         return ""
     if value == "+":
         return _("creó")
@@ -201,9 +203,14 @@ def list_action_links_for_object(*objs, defaults="detail update delete", **optio
 
 @register.inclusion_tag("tags/detail_field.html")
 def detail_field(request=None, name="", value="", url=None, img=None):
-    url = url or getattr(value, "get_absolute_url", "")
-    img = img or getattr(value, "get_img", None)
-    return {"request": request, "name": name, "value": value, "url": url}
+    if url is None:
+        try:
+            url = str(value.get_absolute_url())
+        except (AttributeError, NoReverseMatch):
+            url = ""
+    img = img or getattr(value, "get_img", "")
+    return {"request": request, "name": name, "value": value, "url": url, 
+        "img": img}
 
 
 @register.inclusion_tag("tags/create_button.html")

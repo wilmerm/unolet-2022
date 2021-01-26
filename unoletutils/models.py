@@ -1,3 +1,5 @@
+import warnings
+
 from django.db import models
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
@@ -122,6 +124,8 @@ class ModelBase(models.Model, text.Text):
                 if isinstance(field, (models.DecimalField, models.IntegerField, 
                     models.FloatField)):
                     display = f"{value:,}"
+                else:
+                    display = str(value)
 
             out.append({"field": field, "value": value, "display": display})
         return out
@@ -230,7 +234,6 @@ class ModelBase(models.Model, text.Text):
 
         item = info[action]
         item["url"] = url
-
         return item
 
     def get_barcode(self, code=None, strtype="code128"):
@@ -290,8 +293,57 @@ class ModelBase(models.Model, text.Text):
                 getattr(cls, "logo", 
                 getattr(cls, "photo", 
                 getattr(cls, "ICON", default))))))
-
         return getattr(field, "url", field)
+
+    def get_create_user(self):
+        """
+        Obtiene el usuario que créo el registro.
+        Primero consulta el campo 'create_user', y luego en el historial.
+        """
+        if hasattr(self, "create_user"):
+            return self.create_user
+        first_history = self.get_create_history()
+        if first_history:
+            return first_history.history_user
+
+    def get_create_date(self):
+        """
+        Obtiene la fecha en que se creó el registro.
+        Primero consulta el campo 'create_date', y luego en el historial.
+        """
+        if hasattr(self, "create_date"):
+            return self.create_date
+        first_history = self.get_create_history()
+        if first_history:
+            return first_history.history_date
+
+    def get_create_history(self):
+        """Obtiene el registro historico correspondiente a la creación."""
+        history_qs = self.get_history()
+        if history_qs != None:
+            return history_qs.filter(history_type="+").first()
+
+        # Si no existe un historial, se intentará retornar un diccionario con 
+        # los valores de create_user y create_date si existen.
+        elif hasattr(self, "create_user"):
+            return {
+                "history_user": self.create_user, 
+                "history_date": getattr(self, "create_date", "")
+            }
+
+    def get_last_update_history(self):
+        """Obtiene el registro historico de la última modificación."""
+        history_qs = self.get_history()
+        if history_qs != None:
+            return history_qs.filter(history_type="~").last()
+
+        # Si no existe un historial, se intentará retornar un diccionario con 
+        # los valores de create_user y create_date si existen.
+        elif hasattr(self, "update_user"):
+            return {
+                "history_user": self.update_user, 
+                "history_date": getattr(self, "update_date", "")
+            }
 
     def get_history(self):
         """
@@ -299,7 +351,7 @@ class ModelBase(models.Model, text.Text):
         'django-simple-history'.
         """
         try:
-            return self.history.all()
+            return self.history.all().order_by("-history_date")
         except (AttributeError) as e:
             warnings.warn(e)
 
@@ -312,3 +364,10 @@ class ModelBase(models.Model, text.Text):
             return self.history.model.objects.all()
         except (AttributeError) as e:
             warnings.warn(e)
+    
+    def has_history(self):
+        """Comprueba si este objeto posee historial de cambios."""
+        if not hasattr(self, "history"):
+            return False
+        return bool(self.history.count())
+

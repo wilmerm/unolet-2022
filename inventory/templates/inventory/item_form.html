@@ -3,59 +3,50 @@
 {% load bootstrap5 %}
 
 
-{% block content %}
-<form action="" method="POST">{% csrf_token %}
-    <div class="container detail">
-        {% bootstrap_form_errors form %}
-        <div class="row">
-            <div class="col col-12 col-md-4">
-                {% bootstrap_field form.codename %}
-            </div>
-            <div class="col col-12 col-md-8">
-                {% bootstrap_field form.name %}
-            </div>
-        </div>
-        <div class="row">
-            <div class="col col-12">
-                {% bootstrap_field form.description %}
-            </div>
-        </div>
-        <div class="row">
-            <div class="col col-12 col-sm-6 col-md-4">
-                {% bootstrap_field form.group %}
-            </div>
-            <div class="col col-12 col-sm-6 col-md-4">
-                {% bootstrap_field form.family %}
-            </div>
-            <div class="col col-12 col-sm-6 col-md-4">
-                {% bootstrap_field form.tax %}
-            </div>
-        </div>
-        <div class="row">
-            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
-                {% bootstrap_field form.min_price %}
-            </div>
-            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
-                {% bootstrap_field form.max_price %}
-            </div>
-        </div>
-        <div class="row">
-            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
-                {% bootstrap_field form.is_active %}
-            </div>
-            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
-                {% bootstrap_field form.is_service %}
-            </div>
-        </div>
-        {{ form.media }}
-        <div class="row">
-            <div class="col col-6">
-                <input class="btn btn-success" type="submit" value="{% trans 'Guardar' %}">
-            </div>
-            <div class="col col-6 text-end">
-                <a class="btn btn-danger" href="{{ object.get_delete_url }}">{% trans 'Eliminar' %}</a>
-            </div>
-        </div>
+{% block fields %}
+<div class="row">
+    <div class="col col-12 col-md-4">
+        {% bootstrap_field form.codename %}
     </div>
-</form>
-{% endblock content %}
+    <div class="col col-12 col-md-8">
+        {% bootstrap_field form.name %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12">
+        {% bootstrap_field form.description %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-4">
+        {% bootstrap_field form.group %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-4">
+        {% bootstrap_field form.family %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-4">
+        {% bootstrap_field form.tax %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+        {% bootstrap_field form.min_price %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+        {% bootstrap_field form.max_price %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+        {% bootstrap_field form.is_active %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+        {% bootstrap_field form.is_service %}
+    </div>
+</div>
+{% endblock fields %}
+
+
+{% block buttons_right %}
+<a class="btn btn-danger" href="{{ object.get_delete_url }}">{% trans 'Eliminar' %}</a>
+{% endblock %}

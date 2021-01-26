@@ -40,9 +40,11 @@
             {% detail_field name="Disponible" value=object.get_available %}
         </div>
         <div class="col col-12 col-sm-6 col-md-4">
+            {% if object.is_service %}
             <div class="alert alert-info p-2 m-0" title="{% trans 'Este artículo está marcado como de servicio y no afecta el inventario.' %}">
                 {% svg 'info-circle-fill' %} {% trans 'Artículo de servicio' %}
             </div>
+            {% endif %}
         </div>
     </div>
     <div class="row">

@@ -244,6 +244,8 @@ class Movement(ModelBase):
     Movimiento de inventario.
     """
 
+    ICON = "/static/img/cart.svg"
+
     # No elegimos 'item__company' porque el item puede ser nulo.
     COMPANY_FIELD_NAME = "document__doctype__company"
 
@@ -347,17 +349,10 @@ class Movement(ModelBase):
 
     def get_img(self):
         if self.document.is_inventory_input():
-            return "/static/icons/cart-plus-fill.svg"
+            return "/static/img/cart-plus.svg"
         elif self.document.is_inventory_output:
-            return "/static/icons/cart-dash-fill.svg"
-        return "/static/icons/cart3.svg"
-
-    def get_icon(self):
-        if self.document.is_inventory_input():
-            return icons.svg("cart-plus-fill.svg", fill="var(--green)")
-        elif self.document.is_inventory_output:
-            return icons.svg("cart-dash-fill.svg", fill="var(--red)")
-        return icons.svg("cart3.svg")
+            return "/static/img/cart-minus.svg"
+        return self.ICON
 
     def get_total_formula(self):
         """expresión usada para calcular el total en un queryset con annotate"""

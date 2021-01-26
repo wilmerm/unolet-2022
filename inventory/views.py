@@ -130,6 +130,7 @@ class MovementDetailView(DetailView):
     """Detalle de un movimiento."""
     model = Movement
     template_name = "inventory/movement_detail.html"
+    company_field = "document__doctype__company"
 
 
 # Json views.

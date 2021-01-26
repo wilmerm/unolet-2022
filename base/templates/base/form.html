@@ -9,22 +9,29 @@
 
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col col-0 col-sm-0 col-md-2 col-lg-2">
-            <!--  -->
-        </div>
-        <div class="col col-12 col-sm-8 col-md-6 col-lg-4">
-            <form action="" method="POST">
-                {% csrf_token %}
+<div class="container-fluid detail">
+    {% block form %}
+        <form action="" method="POST">
+            {% csrf_token %}
+            {% block fields %}
                 {% bootstrap_form form %}
-                {{ form.media }}
-                <input type="submit" class="btn btn-success" value="{% trans 'Guardar' %}">
-            </form>
-        </div>
-        <div class="col col-0 col-sm-4 col-md-4 col-lg-4">
-            <!--  -->
-        </div>
-    </div>
+            {% endblock fields %}
+            {{ form.media }}
+
+            {% block buttons %}
+            <div class="row">
+                <div class="col col-12 col-sm-6">
+                    {% block buttons_left %}
+                    <input type="submit" class="btn btn-success" value="{% trans 'Guardar' %}">
+                    {% endblock %}
+                </div>
+                <div class="col col-12 col-sm-6 text-end">
+                    {% block buttons_right %}
+                    {% endblock %}
+                </div>
+            </div>
+            {% endblock buttons %}
+        </form>
+    {% endblock form %}
 </div>
 {% endblock content %}

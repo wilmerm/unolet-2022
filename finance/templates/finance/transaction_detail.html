@@ -1,1 +1,51 @@
 {% extends 'finance/detail.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load base %}
+
+
+{% block detail %}
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-5">
+        {% detail_field name="Documento" value=object.document %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-4">
+        {% detail_field name="Tipo de documento" value=object.document.doctype.get_generic_display %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-3">
+        {% detail_field name="Total del documento" value=object.document.total|intcomma %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-md-6">
+        {% detail_field name="Persona del documento" value=object.document.person %}
+    </div>
+    <div class="col col-12 col-md-6">
+        {% detail_field name="Persona en esta transacción" value=object.person %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+        {% detail_field name="Monto" value=object.amount|intcomma %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+        {% detail_field name="Moneda" value=object.currency %}
+    </div>
+    <div class="col col-12 col-sm-4 col-md-3 col-lg-2">
+        {% detail_field name="Tasa" value=object.currency_rate %}
+    </div>
+    <div class="col col-12 col-sm-6 col-md-8 col-lg-4">
+        {% detail_field name="Forma de pago" value=object.payment_method %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-8 col-lg-9">
+        {% detail_field name="Concepto" value=object.concept %}
+    </div>
+</div>
+<div class="row">
+    <div class="col col-12 col-sm-6 col-md-8 col-lg-9">
+        {% detail_field name="Nota" value=object.note %}
+    </div>
+</div>
+{% endblock detail %}

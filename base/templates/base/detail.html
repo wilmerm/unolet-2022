@@ -11,14 +11,14 @@
 {% block content %}
 <div class="container">
     <div class="row bg-white border shadow-sm p-2">
-        <div class="col col-0 {% if object.get_img %}col-sm-3{% endif %} p-2">
+        <div class="col col-0 {% if object.get_img %}col-sm-3{% endif %} p-3">
             {% block detail_img %}
-                <img src="{{ object.get_img }}" alt="" class="w-100 h-auto">
+                <img src="{{ object.get_img }}" alt="" class="w-100 h-auto p-2 img-thumbnail bg-light">
             {% endblock detail_img %}
         </div>
-        <div class="col col-12 {% if object.get_img %}col-sm-9 col-md-8{% endif %}">
+        <div class="detail col col-12 {% if object.get_img %}col-sm-9 col-md-8{% endif %}">
             {% block is_not_active %}
-                {% if not object.is_active %}
+                {% if object.is_active == False %}
                     <div class="alert alert-warning">
                         {% svg 'exclamation-triangle' %}
                         {% trans 'Este registro está inactivo.' %}
@@ -27,20 +27,52 @@
             {% endblock %}
             {% block detail %}
                 {% for dic in object.get_object_detail %}
-                    {% detail_field request=request name=dic.field.verbose_name.title value=dic.display url=dic.value.get_absolute_url %}
+                    <div class="row">
+                        <div class="col col-12">
+                            {% detail_field request=request name=dic.field.verbose_name.title value=dic.display url=dic.value.get_absolute_url %}
+                        </div>
+                    </div>
                 {% endfor %}
             {% endblock detail %}
         </div>
-        <div class="my-2">
+        <div class="p-2 mt-2 bg-light">
             {% block detail_footer %}
-            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#history-modal">
-                {% svg 'clock' %}
-                {% trans 'Historial de cambios' %}
-            </button>
+                {% block detail_history %}
+                    <div class="row">
+                        <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                            {% if object.has_history %}
+                            <button type="button" class="btn btn-outline-secondary w-100 h-100" data-bs-toggle="modal" data-bs-target="#history-modal">
+                                {% svg 'clock' %}
+                                {% trans 'Historial de cambios' %}
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% with object.get_create_history as create_history %}
+                            {% if create_history %}
+                            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="text-muted">{% trans 'Creación' %}</div>
+                                <div class="fw-bold">{% svg 'person-fill' %} {{ create_history.history_user }}</div>
+                                <div class="fw-bold">{% svg 'calendar' %} {{ create_history.history_date }}</div>
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                        {% with object.get_last_update_history as last_update_history %}
+                            {% if last_update_history %}
+                            <div class="col col-12 col-sm-6 col-md-4 col-lg-3">
+                                <div class="text-muted">{% trans 'Última modificación' %}</div>
+                                <div class="fw-bold">{% svg 'person-fill' %} {{ last_update_history.history_user }}</div>
+                                <div class="fw-bold">{% svg 'calendar' %} {{ last_update_history.history_date }}</div>
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                {% endblock %}
             {% endblock %}
         </div>
     </div>
 </div>
+
+
 
 <!-- history-modal -->
 <div class="modal" tabindex="-1" id="history-modal">
