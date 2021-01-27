@@ -12,7 +12,8 @@ from unoletutils.views import (ListView, DetailView, UpdateView, CreateView,
 from company.models import Company
 from document.models import Document
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
-from inventory.forms import (ItemGroupForm, ItemFamilyForm, ItemForm, MovementForm)
+from inventory.forms import (ItemGroupForm, ItemFamilyForm, ItemForm, 
+    ItemSearchForm, MovementForm)
 
 
 class Index(TemplateView):
@@ -96,12 +97,12 @@ class ItemListView(ListView):
         ("description", _("Descripción")),
         ("group", _("Grupo")),
         ("family", _("Familia")),
-        ("get_available", _("Disponible")),
+        ("get_global_available", _("Disponible")),
     )
-
     list_display_cssclass = {
-        "get_available": "text-end",
+        "get_global_available": "text-end",
     }
+    search_form_class = ItemSearchForm
 
 
 class ItemMovementListView(ListView):

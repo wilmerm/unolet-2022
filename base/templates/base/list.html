@@ -1,8 +1,7 @@
 {% extends 'base/base.html' %}
-{% load bootstrap5 %}
 {% load i18n %}
-{% load l10n %}
 {% load humanize %}
+{% load bootstrap5 %}
 {% load base %}
 
 
@@ -12,6 +11,22 @@
 
 {% block content %}
 <div class="container">
+    <form action="" method="GET" class="row mb-2">
+        {% block search %}
+            {% with view.get_search_form as search_form %}
+                {% if search_form %}
+                    {% for field in search_form %}
+                        <div class="col col-auto">{% bootstrap_field field size="small" %}</div>
+                    {% endfor %}
+                    <div class="col col-auto">
+                        <input class="btn btn-outline-secondary btn-sm" type="submit" value="&#128270;" title="{% trans 'Buscar.' %}">
+                        <a class="btn btn-outline-secondary btn-sm" href="{{ request.path }}" title="{% trans 'Borrar filtros y mostrar todos.' %}">X</a>
+                    </div>
+                {% endif %}
+            {% endwith %}
+        {% endblock search %}
+    </form>
+    {% block list %}
     <div class="table-responsive">
         <table class="table table-sm table-bordered table-resize">
             <thead class="table-light">
@@ -48,6 +63,7 @@
             </tbody>
         </table>
     </div>
+    {% endblock list %}
     {% pagination page_obj request %}
 </div>
 {% endblock content %}

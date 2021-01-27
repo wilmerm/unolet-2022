@@ -178,7 +178,7 @@ class ModelBase(models.Model, text.Text):
             else:
                 if (default != "__raise_exception__"):
                     return default
-                na = [a for a in attr.__dict__.keys() if not a.startswith("__")]
+                na = [a for a in getattr(attr, "__dict__", dict()).keys() if not a.startswith("__")]
                 raise AttributeError(
                     f"Error en {repr(self)} obteniendo el atributo '{name}'. "
                     f"{repr(attr)} no tiene un atributo llamado '{n}'. \n"

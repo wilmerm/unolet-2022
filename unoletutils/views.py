@@ -1,6 +1,7 @@
 import copy
 import functools
 
+from django.core.exceptions import FieldError
 from django.shortcuts import render, get_object_or_404, get_list_or_404
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
@@ -8,6 +9,8 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _l
 from django.views import generic
 from django.contrib import messages
+
+from base.forms import SearchForm
 
 
 class ViewError(Exception):
@@ -203,6 +206,11 @@ class BaseList(BaseView):
     list_display = [("__str__", _l("nombre"))]
     list_display_cssclass = {}
     list_display_links = ["__str__"]
+    search_form_class = SearchForm
+
+    def get_search_form(self):
+        if self.search_form_class:
+            return self.search_form_class(self.request.GET)
 
     def get_queryset(self):
         # Establecemos el valor al atributo 'paginate_by' si se especifica en la
@@ -217,10 +225,30 @@ class BaseList(BaseView):
             paginate_by = self.VALUES_FOR_PAGINATE_BY[0]
             
         self.paginate_by = paginate_by
-
-        qs = super().get_queryset()
-
+        qs = self.queryset_filter(super().get_queryset())
         return QuerysetCapsule(view=self, queryset=qs)
+
+    def queryset_filter(self, queryset):
+        """
+        Filtra el queryset de acuerdo al los valores del diccionario pasado.
+        Las claves del diccionario deben ser nombres de campos válidos del 
+        modelo Ej. {'name': 'Unolet'} or {'name__contains': 'Uno'}
+        Las claves no válidas serán obviadas.
+        """
+        return queryset.filter(available=0)
+        form = self.get_search_form()
+        if form.is_valid():
+            for key in form.cleaned_data:
+                value = form.cleaned_data[key]
+                print(key, value, type(value))
+                if value == "":
+                    continue
+                try:
+                    queryset = queryset.filter(**{key: value})
+                except (FieldError) as e:
+                    print(e)
+                    continue 
+        return queryset
 
     def get_list_display(self):
         return self.list_display or [("__str__", _l("nombre"))]

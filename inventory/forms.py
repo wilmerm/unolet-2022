@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _l
 
 from dal import autocomplete
 
-from base.forms import ModelForm
+from base.forms import ModelForm, SearchForm
 from company.models import Company
 from document.models import Document, DocumentType
 from inventory.models import (Item, ItemFamily, ItemGroup, Movement)
@@ -61,6 +61,21 @@ class ItemForm(ModelForm):
             url=reverse("finance-autocomplete-tax", 
             kwargs={"company": self.company.pk})))
 
+
+class ItemSearchForm(SearchForm):
+    """Formulario de búsqueda para artículos."""
+
+    available__gt = forms.BooleanField(required=False, 
+    label=_l("Solo disponibles"))
+
+    def clean(self):
+        available__gt = self.cleaned_data["available__gt"]
+        if available__gt in (True, 1, "on", "true", "True", "1"):
+            self.cleaned_data["available__gt"] = 0
+        else:
+            self.cleaned_data["available__gt"] = -99999999999999999
+
+
 class MovementForm(ModelForm):
     """Formulario para movimientos."""
 
@@ -70,10 +85,12 @@ class MovementForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        print("-----", self.company.id)
         
 
+class MovementSearchForm(SearchForm):
+    """Formulario de búsqueda de movimientos."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item__tags_icontains"] = self.fields.pop("tags__icontains")
     
-

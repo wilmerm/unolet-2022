@@ -113,6 +113,8 @@ class Item(ModelBase):
     available = models.DecimalField(_l("disponible"), max_digits=22, 
     decimal_places=2, default=0, blank=True, editable=False)
 
+    available_json = models.JSONField(_l("disponible"), blank=True, default=dict)
+
     is_active = models.BooleanField(_l("activo"), default=True)
 
     is_service = models.BooleanField(_l("es un artículo de servicio"), 
@@ -165,26 +167,76 @@ class Item(ModelBase):
         self.update_tags()
         return super().save(*args, **kwargs)
 
-    def get_available(self, warehouse=None):
-        """Obtiene la cantidad disponible global de este artículo."""
-        if self.is_service:
-            return 0
+    def get_global_available(self, warehouse=None) -> float:
+        """
+        Obtiene el disponible global o el global para el almacén indicado.
+        Se retorna un type float porque los Decimal no son JSON seriazables.
+        """
+        warehouse_id = getattr(warehouse, "id", warehouse) or None 
+        dic = self.available_json or self.get_available(update=True)
+        if warehouse_id:
+            return dic["warehouse"][warehouse_id]["available"]
+        return dic["available"]
 
-        from document.models import Document
+    def get_available(self, update: bool=True) -> dict:
+        """
+        Obtiene la cantidad disponible de este artículo en un diccionario.
         
-        inputs = Movement.input_objects.filter(item=self)
-        outputs = Movement.output_objects.filter(item=self)
-        trans = Movement.transfer_objects.filter(item=self)
+        El resultado incluye las entradas, salidas y disponile, al igual que 
+        lo mismo para cada almacén.
 
-        if warehouse != None:
-            inputs = inputs.filter(document__warehouse=warehouse)
-            inputs = inputs | trans.filter(document__transfer_warehouse=warehouse)
-            outputs = outputs.filter(document__warehouse=warehouse)
-            outputs = outputs | trans.filter(document__warehouse=warehouse)
+        Si update == True se actualizará el campo 'available_json'.
+        """
+        # Los artículos de servicio no afectan el inventario.
+        if self.is_service:
+            dic = {"inputs": 0, "outputs": 0, "available": 0, "warehouse": dict()}
+            self.available_json = dic
+            self.save_without_historical_record()
+            return dic
 
-        input_sum = inputs.aggregate(s=models.Sum("quantity"))["s"] or 0
-        output_sum = outputs.aggregate(s=models.Sum("quantity"))["s"] or 0
-        return input_sum - output_sum
+        from document.models import Document, DocumentType
+        from warehouse.models import Warehouse
+        from django.db.models import Case, F, Sum, When, Value
+        generic_input = list(DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_INPUT)
+        generic_output = list(DocumentType.TYPES_THAT_AFFECT_THE_INVENTORY_AS_OUTPUT)
+
+        available = 0
+        qs = self.movement_set.all()
+        dic = dict()
+        dic["inputs"] = qs.filter(
+            document__doctype__generic__in=generic_input).aggregate(
+                s=Sum("quantity", output_field=models.FloatField()))["s"] or 0
+        dic["outputs"] = qs.filter(
+            document__doctype__generic__in=generic_output).aggregate(
+                s=Sum("quantity", output_field=models.FloatField()))["s"] or 0
+        
+        dic["available"] = dic["inputs"] - dic["outputs"]
+        dic["warehouse"] = dict()
+
+        # Disponible para cada almacén activo.
+        for warehouse in Warehouse.active_objects.all():
+            inputs = qs.filter(
+                document__doctype__generic__in=generic_input + [DocumentType.TRANSFER],
+                document__warehouse=warehouse).aggregate(
+                    s=Sum("quantity", output_field=models.FloatField()))["s"] or 0
+            outputs = qs.filter(
+                document__doctype__generic__in=generic_output + [DocumentType.TRANSFER],
+                document__transfer_warehouse=warehouse).aggregate(
+                    s=Sum("quantity", output_field=models.FloatField()))["s"] or 0            
+
+            available = inputs - outputs
+            dic["warehouse"][warehouse.id] = {
+                "name": str(warehouse),
+                "inputs": inputs,
+                "outputs": outputs,
+                "available": available
+            }
+
+        if bool(update):
+            self.available_json = dic
+            self.save_without_historical_record()
+
+        return dic
 
     def get_average_cost(self):
         """Obtiene el costo promedio de este artículo."""

@@ -3,6 +3,7 @@ import warnings
 from django.core.exceptions import FieldError
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _l
 
 from unoletutils.libs import icons
 
@@ -81,3 +82,14 @@ class ModelForm(forms.ModelForm):
             field.disabled = bool(disabled)
             field.label = ""
             field.widget.attrs.update({"style": "display: none"})
+
+
+class SearchForm(forms.Form):
+    """Formulario para búsqueda."""
+
+    tags__icontains = forms.CharField(label="", max_length=50, strip=True, 
+    required=False, widget=forms.TextInput(
+        attrs={"type": "search", "placeholder": _l("Buscar...")}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

@@ -37,7 +37,7 @@
             {% detail_field name="Impuesto" value=object.tax %}
         </div>
         <div class="col col-12 col-sm-6 col-md-4">
-            {% detail_field name="Disponible" value=object.get_available %}
+            {% detail_field name="Disponible" value=object.get_available.available %}
         </div>
         <div class="col col-12 col-sm-6 col-md-4">
             {% if object.is_service %}
@@ -58,11 +58,36 @@
             {% detail_field name="Costo promedio" value=object.get_average_cost|floatformat:"2"|intcomma %}
         </div>
     </div>
+    <div class="row">
+        <div class="col col-12">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>{% trans 'Almacén' %}</th>
+                        <th class="text-end">{% trans 'Entradas' %}</th>
+                        <th class="text-end">{% trans 'Salidas' %}</th>
+                        <th class="text-end">{% trans 'Disponible' %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for id, dic in object.get_available.warehouse.items %}
+                    <tr>
+                        <td>{{ dic.name }}</td>
+                        <td class="text-end">{{ dic.inputs|intcomma }}</td>
+                        <td class="text-end">{{ dic.outputs|intcomma }}</td>
+                        <td class="text-end">{{ dic.available|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock detail %}
 
 
 {% block detail_footer %}
-    {{ block.super }}
-    <a class="btn btn-secondary" href="{% url 'inventory-item-movement-list' company=company.pk item=object.pk %}">{% trans 'Movimientos' %}</a>
+<a class="btn btn-secondary btn-lg" href="{% url 'inventory-item-movement-list' company=company.pk item=object.pk %}">{% trans 'Movimientos' %}</a>
+<hr>
+{{ block.super }}
 {% endblock detail_footer %}

@@ -4,41 +4,39 @@
 {% load base %}
 
 
-{% block content %}
-<div class="container">
-    <div class="table-responsive">
-        <table class="table table-sm table-bordered table-resize">
-            <thead class="table-light">
-                <tr>
-                    <th></th>
-                    <th>{% trans 'Documento' %}</th>
-                    <th>{% trans 'Creación' %}</th>
-                    <th>{% trans 'Usuario' %}</th>
-                    <th>{% trans 'Cantidad' %}</th>
-                    <th>{% trans 'Precio' %}</th>
-                    <th>{% trans 'Descuento' %}</th>
-                    <th>{% trans 'Impuesto' %}</th>
-                    <th>{% trans 'Total' %}</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for obj in object_list %}
-                <tr>
-                    <td>{{ obj.get_icon.svg|safe }}</td>
-                    <td><a href="{{ obj.document.get_absolute_url }}">{{ obj.document }}</a></td>
-                    <td>{{ obj.create_date }}</td>
-                    <td>{{ obj.create_user }}</td>
-                    <td class="text-end">{{ obj.quantity|intcomma }}</td>
-                    <td class="text-end">{{ obj.price|intcomma }}</td>
-                    <td class="text-end">{{ obj.discount|intcomma }}</td>
-                    <td class="text-end">{{ obj.tax|intcomma }}</td>
-                    <td class="text-end">{{ obj.total|intcomma }}</td>
-                    <td><a href="{{ obj.get_detail_url }}">{% svg 'eye-fill' fill="var(--primary)" %}</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+{% block list %}
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-resize">
+        <thead class="table-light">
+            <tr>
+                <th></th>
+                <th>{% trans 'Documento' %}</th>
+                <th>{% trans 'Creación' %}</th>
+                <th>{% trans 'Usuario' %}</th>
+                <th>{% trans 'Cantidad' %}</th>
+                <th>{% trans 'Precio' %}</th>
+                <th>{% trans 'Descuento' %}</th>
+                <th>{% trans 'Impuesto' %}</th>
+                <th>{% trans 'Total' %}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in object_list %}
+            <tr>
+                <td><a href="{{ obj.get_detail_url }}"><img src="{{ obj.get_img }}" alt=""></a></td>
+                <td><a href="{{ obj.document.get_absolute_url }}">{{ obj.document }}</a></td>
+                <td>{{ obj.create_date }}</td>
+                <td>{{ obj.create_user }}</td>
+                <td class="text-end">{{ obj.quantity|intcomma }}</td>
+                <td class="text-end">{{ obj.price|intcomma }}</td>
+                <td class="text-end">{{ obj.discount|intcomma }}</td>
+                <td class="text-end">{{ obj.tax|intcomma }}</td>
+                <td class="text-end">{{ obj.total|intcomma }}</td>
+                <td><a href="{{ obj.get_detail_url }}">{% svg 'eye-fill' fill="var(--primary)" %}</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
-{% endblock content %}
+{% endblock list %}
