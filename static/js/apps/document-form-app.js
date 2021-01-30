@@ -1,7 +1,7 @@
 /**
  * VueJs.
  * 
- * @author Unolet <www.unolet.com>
+ * @author Unolet <https://www.unolet.com>
  * @copyright 2021 Unolet SRL
  */
 
@@ -73,6 +73,8 @@
             TITLES: TITLES,
             URLS: URLS,
             USER_ID: USER_ID,
+
+            timeout_on_search: "",
         }
     },
 
@@ -117,11 +119,15 @@
                 count: 0, 
                 selected_item: {}
             }
-
         },
 
         // Al buscar un artículo en el formulario de movimiento.
         onSearch() {
+            clearTimeout(this.timeout_on_search);
+            this.timeout_on_search = setTimeout(this.searchItems, 1000);
+        },
+        
+        searchItems() {
             fetch(URLS.api_inventory_item_list + "?q=" + this.search.text)
                 .then(r => r.json())
                 .then(data => {
@@ -129,13 +135,15 @@
                     this.search.count = data.data.count;
                 });
         },
-
+        
+        // Muestra el cuadro modal con el id indicado.
         showModal(modal_id) {
             let modalEl = document.getElementById(modal_id);
             let modal = new bootstrap.Modal(modalEl);
             modal.show();
         },
 
+        // Evento al agregar una nota.
         onAddNote() {
             if (!this.content_new_note) {
                 this.message.content = this.TITLES.write_something;
@@ -291,6 +299,12 @@
                 });
         },
 
+        // Click para imprimir el documento.
+        onPrintDocument: function() {
+            
+        },
+
+        // Reestablece las variables a los valores iniciales.
         reset() {
             this.movement = {
                 id: null,

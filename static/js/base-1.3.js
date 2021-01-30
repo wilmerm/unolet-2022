@@ -20,6 +20,7 @@ $(document).on("submit", function(event) {
     } else {
         IS_PROCESS_SUBMIT = true;
     }
+    alert("Guardando...");
 });
 
 

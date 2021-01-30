@@ -6,13 +6,14 @@
 
 
 {% block content %}
+<script src="/static/external/axios/axios.min.js"></script>
+<script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
+
 <div class="container" id="document-form-app">
-
-    <button-counter></button-counter>
-
     <div class="container-fluid">
         <div class="row">
-            <div class="col col-12 col-md-7">
+            <!-- Docuement form. -->
+            <div class="col col-12 col-md-7">          
                 <form action="" method="POST"> {% csrf_token %}
                     {% bootstrap_form_errors form %}
                     <div class="row border-bottom p-1">
@@ -70,16 +71,28 @@
                     </div>
                     <hr>
                     <div>
-                        <input class="btn btn-success me-1" type="submit" value="{% trans 'Guardar' %}">
+                        <input class="btn btn-primary me-1" type="submit" value="{% trans 'Guardar' %}">
                         {% if object.pk %}
-                        <a class="btn btn-danger" href="{{ object.get_delete_url }}">{% trans 'Eliminar' %}</a>
+                        <a class="btn btn-secondary" href="{{ object.get_print_url }}" target="_blank" onclick="reloadCurrentPage(3000)" title="{% trans 'imprimir' %}">{% svg 'printer-fill' %}</a>
+                            {% if not object.is_printed %}
+                            <a class="btn btn-danger" href="{{ object.get_delete_url }}" title="{% trans 'Eliminar' %}">{% svg 'x-circle-fill' %}</a>
+                            {% endif %}
                         {% endif %}
                     </div>
                     {{ form.media }}
                 </form>
+                <!-- {# Info de documento pendiente de impresión #} -->
+                {% if object.pk and not object.is_printed %}
+                <div class="alert alert-primary mt-2">
+                    <strong>{% trans 'Documento pendiente de impresión. ' %}</strong>
+                    <span>{% trans 'Estará en estado de borrador hasta que sea impreso.' %}</span>
+                </div>
+                {% endif %}  
             </div>
+            <!-- End document form. -->
+
+            <!-- Info widgets -->
             <div class="col col-12 col-md-5">
-                <!-- Info widgets -->
                 <!-- General info. -->
                 <div class="container-fluid border p-3 mb-2 bg-white shadow-sm">
                     <table class="table table-sm">
@@ -142,12 +155,13 @@
                     </div>
                 </div>
             </div>
+            <!-- End widgets. -->
         </div>
     </div>
     <hr>
     <div class="row">
         <div class="col col-8">
-            <h2>{% trans 'Movimientos' %}</h2>
+            <h2><img src="/static/img/cart.svg" alt=""> {% trans 'Movimientos' %}</h2>
         </div>
         <div class="col col-4 text-end pb-2">
             <!-- Button trigger modal -->
@@ -156,6 +170,8 @@
             </button>
         </div>
     </div>
+
+    <!-- Movements. -->
     <div class="table-responsive">
         <table class="table table-bordered table-striped table-resize">
             <thead>
@@ -197,16 +213,17 @@
             </tfoot>
         </table>
     </div>
+    <!-- End movements. -->
+
     <!-- movement-add-modal -->
     <div class="modal fade" id="movement-add-modal" tabindex="-1" aria-labelledby="Movement Add" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content bg-light">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="movement-add-modal-label">{% trans 'Nuevo movimiento' %}</h5>
+                    <h5 class="modal-title" id="movement-add-modal-label"><img src="/static/img/cart.svg" alt=""> {% trans 'Nuevo movimiento' %}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-
                     <!-- {# Movement form. #}-->
                     <div class="container-fluid">
                         <!-- {# Global errores. #} -->
@@ -332,12 +349,13 @@
         </div>
     </div>
     <!-- End Movement modal. -->
+
     <!-- Movement confirm delete Modal. -->
     <div class="modal" id="movement-confirm-delete-modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">{% trans 'Confirme la eliminación del movimiento' %}</h5>
+                    <h5 class="modal-title"><img src="/static/img/minus.svg" alt=""> {% trans 'Confirme la eliminación del movimiento' %}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -351,6 +369,7 @@
         </div>
     </div>
     <!-- End Movement confirm delete Modal. -->
+
     <!-- Message Modal. -->
     <div class="modal" id="message-modal" tabindex="-1">
         <div class="modal-dialog">
@@ -371,11 +390,11 @@
     <!-- End Message Modal. -->
 </div>
 
-<script src="/static/external/axios/axios.min.js"></script>
-<script src="/static/external/vuejs/vue3/vue.3.0.5.js"></script>
+
 <script>
     const DOCUMENT_PK = "{{ object.pk }}";
-
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const USER_ID = "{{ user.id }}";
     const URLS = {
         api_document_document_detail: "{% if object.pk %}{% url 'api-document-document-detail' company=company.pk document=object.pk %}{% endif %}",
         api_document_document_documentnote_create: "{% if object.pk %}{% url 'api-document-document-documentnote-create' company=company.pk document=object.pk %}{% endif %}",
@@ -386,7 +405,6 @@
         api_inventory_movement_delete: "{% if object.pk %}{% url 'api-inventory-movement-delete' company=company.pk document=object.pk %}{% endif %}",
         api_finance_currency_detail: "{% url 'api-finance-currency-detail' company=company.pk %}",
     }
-
     const TITLES = {
         name: "{% trans 'Nombre' %}",
         available: "{% trans 'Disponible' %}",
@@ -399,10 +417,6 @@
         write_something: "{% trans 'Escriba algo' %}",
     }
 
-    const CSRF_TOKEN = "{{ csrf_token }}";
-
-    const USER_ID = "{{ user.id }}";
-
     // Al cambiar la moneda se cambia la tasa.
     $(document).on('change', '#id_currency', function() {
         let id = $("#id_currency").val();
@@ -410,8 +424,7 @@
             $("#id_currency_rate").val(result.data.rate);
         }});
     });
-
 </script>
-<!-- <script src="/static/js/apps/components.js"></script> -->
+
 <script src="/static/js/apps/document-form-app.js"></script>
 {% endblock content %}

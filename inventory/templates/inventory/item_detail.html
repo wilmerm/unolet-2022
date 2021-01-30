@@ -37,7 +37,7 @@
             {% detail_field name="Impuesto" value=object.tax %}
         </div>
         <div class="col col-12 col-sm-6 col-md-4">
-            {% detail_field name="Disponible" value=object.get_available.available %}
+            <!--  -->
         </div>
         <div class="col col-12 col-sm-6 col-md-4">
             {% if object.is_service %}
@@ -60,17 +60,19 @@
     </div>
     <div class="row">
         <div class="col col-12">
+            {% with object.get_available as available_dic %}
             <table class="table table-sm">
+                <caption class="caption-top">{% trans 'Disponibilidad' %}</caption>
                 <thead>
                     <tr>
-                        <th>{% trans 'Almacén' %}</th>
+                        <th class="text-start">{% trans 'Almacén' %}</th>
                         <th class="text-end">{% trans 'Entradas' %}</th>
                         <th class="text-end">{% trans 'Salidas' %}</th>
                         <th class="text-end">{% trans 'Disponible' %}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for id, dic in object.get_available.warehouse.items %}
+                    {% for id, dic in available_dic.warehouse.items %}
                     <tr>
                         <td>{{ dic.name }}</td>
                         <td class="text-end">{{ dic.inputs|intcomma }}</td>
@@ -79,7 +81,16 @@
                     </tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td>{% trans 'Global' %}</td>
+                        <td class="text-end">{{ available_dic.inputs|intcomma }}</td>
+                        <td class="text-end">{{ available_dic.outputs|intcomma }}</td>
+                        <td class="text-end fw-bold">{{ available_dic.available|intcomma }}</td>
+                    </tr>
+                </tfoot>
             </table>
+            {% endwith %}
         </div>
     </div>
 </div>

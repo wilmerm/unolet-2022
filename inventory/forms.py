@@ -65,15 +65,15 @@ class ItemForm(ModelForm):
 class ItemSearchForm(SearchForm):
     """Formulario de búsqueda para artículos."""
 
-    available__gt = forms.BooleanField(required=False, 
+    available_json__available__gt = forms.BooleanField(required=False, 
     label=_l("Solo disponibles"))
 
     def clean(self):
-        available__gt = self.cleaned_data["available__gt"]
+        available__gt = self.cleaned_data["available_json__available__gt"]
         if available__gt in (True, 1, "on", "true", "True", "1"):
-            self.cleaned_data["available__gt"] = 0
+            self.cleaned_data["available_json__available__gt"] = 0
         else:
-            self.cleaned_data["available__gt"] = -99999999999999999
+            self.cleaned_data["available_json__available__gt"] = -99999999999999999
 
 
 class MovementForm(ModelForm):

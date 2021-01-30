@@ -1,0 +1,59 @@
+<!-- {# Plantilla de impresión #} -->
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="/static/external/jquery/jquery-3.5.1.js"></script>
+    <link rel="stylesheet" href="/static/external/bootstrap/bootstrap-5.0.0-beta1-dist/css/bootstrap.css">
+    <script src="/static/external/bootstrap/bootstrap-5.0.0-beta1-dist/js/bootstrap.bundle.js"></script>
+</head>
+<body class="bg-white">
+    <!-- {# header. #} -->
+    <header>
+        {% block header %}
+        {% endblock %}
+    </header>
+    <!-- {# main #} -->
+    <main>
+        {% block main %}
+        {% endblock %}
+    </main>
+    <!-- {# footer #} -->
+    <footer class="fixed-bottom">
+        {% block footer %}
+        <!-- {# Firmas. #} -->
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col col-3 text-center border-top border-dark">
+                    {% trans 'Digitado por' %}
+                </div>
+                <div class="col-1">
+                    <!--  -->
+                </div>
+                <div class="col col-3 text-center border-top border-dark">
+                    {% trans 'Entregado por' %}
+                </div>
+                <div class="col-1">
+                    <!--  -->
+                </div>
+                <div class="col col-4 text-center border-top border-dark">
+                    {% trans 'Recibido por' %}
+                </div>
+            </div>
+        </div>
+        {% endblock %}
+    </footer>
+</body>
+<!-- {# Scripts #} -->
+<script>
+    window.onload = function() {
+        window.print();
+    }
+    setTimeout(() => {
+        window.close();
+    }, 1000);
+</script>
+</html>

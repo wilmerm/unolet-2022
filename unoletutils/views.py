@@ -214,7 +214,7 @@ class BaseList(BaseView):
 
     def get_queryset(self):
         # Establecemos el valor al atributo 'paginate_by' si se especifica en la
-        # url. Devolvemos el valor predeterminado si el valor no es válido.
+        # URL. Devolvemos el valor predeterminado si el valor no es válido.
         try:
             paginate_by = int(self.request.GET.get("paginate_by") or 
                 self.paginate_by)
@@ -235,7 +235,6 @@ class BaseList(BaseView):
         modelo Ej. {'name': 'Unolet'} or {'name__contains': 'Uno'}
         Las claves no válidas serán obviadas.
         """
-        return queryset.filter(available=0)
         form = self.get_search_form()
         if form.is_valid():
             for key in form.cleaned_data:
@@ -318,6 +317,38 @@ class DeleteView(BaseView, generic.DeleteView):
 
 class TemplateView(BaseView, generic.TemplateView):
     pass
+
+
+class PrintView(TemplateView):
+    """Plantilla base de impresión heredada de TemplateView."""
+    pass 
+
+
+class DetailPrintView(DetailView):
+    """Vista base para impresión heredada de DatailView."""
+    
+    def get_template_names(self):
+        template_names = super().get_template_names()
+        return [n.replace("detail.html", "print.html") for n in template_names]
+
+    def dispatch(self, request, *args, **kwargs):
+        # Al imprimir se guarda un registro en el historial de cambios.
+        obj = self.get_object()
+        if hasattr(obj, "history"):
+            if bool(getattr(obj, "is_printed", False)):
+                obj._change_reason = _("Re-imprimió")
+            else:
+                obj._change_reason = _("Imprimió")
+            if request.user.is_staff:
+                obj._change_reason += _(" (prueba)")
+            obj.is_printed = True
+            obj.save()
+            history = obj.history.order_by("history_date").last()
+            # Los tipos predefinidos de simple-history son (+), (-) y (~), hemos 
+            # agregado uno más (p) para identificar los de la impresión.
+            history.history_type = "p" 
+            history.save()
+        return super().dispatch(request, *args, **kwargs)
 
 
 class JsonResponseMixin:

@@ -35,6 +35,8 @@ def to_html(value):
         return format_html(icons.svg("pencil-fill", fill="var(--warning)")["svg"])
     if value == "-":
         return format_html(icons.svg("dash-circle-fill", fill="var(--danger)")["svg"])
+    if value == "p":
+        return format_html(icons.svg("printer-fill", fill="var(--info)")["svg"])
     if isinstance(value, dict):
         return dict_to_ul(value)
     return readable(value)
@@ -57,6 +59,8 @@ def readable(value):
         return _("modificó")
     if value == "-":
         return _("eliminó")
+    if value == "p":
+        return _("imprimió")
     return value
 
 

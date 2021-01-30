@@ -1,65 +1,40 @@
 /**
  * @utils scripts útiles comunes para todo el proyecto de Unolet.
  * 
- * @version 3.0
+ * @version 3.1
  * @author Unolet <https://www.unolet.com>
  * @copyright Unolet <https://www.unolet.com>
  * @see https://blog.unolet.com
  */
 
-// -----------------------------------------------------------------------------
-// Variables
-//------------------------------------------------------------------------------
 
 // Convensión con Python.
 const None = null;
 const True = true;
 const False = false;
-
 const PORCENTAJE = "PORCENTAJE";
 const FIJO = "FIJO";
 
 
 
-
-// Métodos abreviado.
-
-function getById(id) {
-  return document.getElementById(id);
-}
-
-
-function querySelector(text) {
-  return document.querySelector(text);
-}
-
-
-function querySelectorAll(text) {
-  return document.querySelectorAll(text);
+/**
+ * Igual que location.href con opción de tiempo de espera.
+ * @param {string} url URL a la cual ir, una cadena vacia recargará la página actual.
+ * @param {number} timeout tiempo de espera antes de ir a dicha URL.
+ */
+function goTo(url, timeout=1000) {
+  setTimeout(() => {
+      location.href = url;
+  }, timeout);
 }
 
 
 
-// Método abreviado de location.href = 'url'.
-function goToURL(url, newtab = false) {
-  location.href = url;
-}
-
-
-
-// Muestra si está oculto u oculta si se está mostrando
-// el elemento con el id indicado.
-function setShowOrHide(id, display = "block") {
-  var e = document.getElementById(id);
-  if (e.style.display == "none") {
-    e.style.display = display;
-  } else {
-    e.style.display = "none";
-  }
-}
-
-
-// Retorna true si es un valor valor válido.
+/**
+ * Comprueba si es un valor válido y verdadero.
+ * @param {any} value El valor que se desea evaluar.
+ * @returns {boolean}
+ */
 function is(value) {
   if (value == undefined) {
     return false;
@@ -74,7 +49,12 @@ function is(value) {
 }
 
 
-// Retorna true si todos sus elementos son verdaderos.
+/**
+ * Operación lógica AND. Retorna True si todos sus valores son verdaderos.
+ * @param {any} a Primer valor a comparar.
+ * @param {any} b Segundo valor a comparar.
+ * @returns {boolean}
+ */
 function and(a, b) {
   if (!is(a)) {
     return false;
@@ -86,73 +66,71 @@ function and(a, b) {
 }
 
 
-// Obtiene el primer elemento que contenga un valor.
-function firstOf(a, b = null) {
-  if (is(a)) {
-    return a;
-  }
-  return b;
-}
-
-
-function str(any) {
-  return toString(any);
-}
-
-
-function int(number, alt_return = 0) {
-  return firstOf(parseInt(number), alt_return);
-}
-
-
-function float(number, alt_return = 0) {
-  return firstOf(parseFloat(number), alt_return);
-}
-
-
-// Convierte un número a texto en formato separador de miles.
-function intcommaOLD(number, decimal_places = 2) {
-  if (decimal_places > 0) {
-    number = parseFloat(number);
-  }
-  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-
-
-function intcomma(num, decimal_places = 2) {
-  /*
-      Retorna un string representando el número con coma de miles.
-  */
-  try {
-    num = parseFloat(num);
-  } catch (error) {
-    return "";
-  }
-
-  if (isNaN(num)) {
-    return "";
-  }
-
-  let num_parts = num.toString().split(".");
-  num_parts[0] = num_parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-  if (num_parts[1] != undefined) {
-    try {
-      num_parts[1] = num_parts[1].slice(0, decimal_places);
-    } catch (error) {
-      console.warn("No se agregaron los decimales en utils.js intcomma(" + num + ", " + decimal_places + ")");
-      console.warn(error);
+/**
+ * Retorna el primer parámetro pasado que sea evaluado como verdadero.
+ * Si ninguno son verdaderos retorna el último parámetro.
+ * @returns {any}
+ */
+function firstOf(a, b, c, d, e, f, g, h, i, j, k) {
+  array = [a, b, c, d, e, f, g, h, i, j, k]
+  array.forEach(element => {
+    if (is(element)) {
+      return element;
     }
-  }
+  });
+  return k;
+}
 
-  return num_parts.join(".");
+/**
+ * Convierte el valor a tipo string.
+ * @param {any} value valor que se desea convertir a string.
+ * @returns {string} toString(value)
+ */
+function str(value) {
+  return toString(value);
 }
 
 
-// ----------------------------------------------------------
-// CALCULOS
-// ----------------------------------------------------------
+/**
+ * Convierte el valor en tipo entero.
+ * @param {any} value Valor que se desea convertir.
+ * @param {any} alt_return Si el valor no se puede evaluar con parseInt, se retornará alt_return que default es 0.
+ * @returns {number} parseInt(value) or alt_return
+ */
+function int(value, alt_return=0) {
+  return firstOf(parseInt(value), alt_return);
+}
+
+
+/**
+ * Convierte el valor en tipo número de coma flotante.
+ * @param {any} value Valor que se desea convertir.
+ * @param {any} alt_return Si el valor no se puede evaluar con parseFloat, se retornará alt_return que default es 0.
+ * @returns {number} parseFloat(value) or alt_return
+ */
+function float(value, alt_return = 0) {
+  return firstOf(parseFloat(value), alt_return);
+}
+
+
+/**
+ * Convierte un número a número de tipo string de división de miles separado por coma.
+ * @param {number} num Número que se desea convertir.
+ * @param {number} decimal_places Cantidad de decimales (default=2).
+ * @returns {string}
+ */
+function intcomma(num, decimal_places=2) {
+  try {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  } catch (error) {
+    return num;
+  }
+}
+
+
+
+// CÁLCULOS
+
 
 
 /* -----------------------------------------------------

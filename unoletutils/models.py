@@ -68,6 +68,9 @@ class ModelBase(models.Model, text.Text):
     def get_detail_url(self):
         return self.reverse_lazy("%s-detail" % self.get_base_url_name())
 
+    def get_print_url(self):
+        return self.reverse_lazy("%s-print" % self.get_base_url_name())
+
     def get_update_url(self):
         return self.reverse_lazy("%s-update" % self.get_base_url_name())
 

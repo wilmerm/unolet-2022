@@ -1,0 +1,157 @@
+{% extends 'base/print.html' %}
+{% load i18n %}
+{% load humanize %}
+{% load base %}
+
+
+{% block header %}
+<div class="container-fluid">
+    {% block headerTop %}{% endblock %}
+    <div class="row">
+        <div class="col col-5">
+            {% block headerLeft %}
+                <!-- {# company #} -->
+                {% if object.warehouse.company.logo %}
+                <img src="{{ object.warehouse.company.logo.url }}" alt="{{ object.warehouse.company }}" class="img-fluid">
+                {% else %}
+                <h2 class="display-3">{{ object.warehouse.company }}</h2>
+                {% endif %}
+
+                {% if object.warehouse.address %}
+                <div>{{ object.warehouse.address }}</div>
+                {% endif %}
+
+                {% if object.warehouse.email %}
+                <div>{% trans 'Email: ' %} {{ object.warehouse.email }}</div>
+                {% endif %}
+
+                {% if object.warehouse.phones %}
+                <div>{% trans 'Tel.:' %} {{ object.warehouse.phones }}</div>
+                {% endif %}
+            {% endblock %}
+        </div>
+        <div class="col col-2">
+            {% block headerCenter %}{% endblock %}
+        </div>
+        <div class="col col-5">
+            {% block headerRight %}
+                <!-- {# Invoice data #} -->
+                <h1>{{ object.doctype.get_generic_display }}</h1>
+                <table>
+                    <tbody>
+                        <tr>
+                            <th>{% trans 'Sucursal: ' %}</th>
+                            <td>{{ object.warehouse }}</td>
+                        </tr>
+                        <tr>
+                            <th>{% trans 'Número: ' %}</th>
+                            <td>{{ object.get_number }}</td>
+                        </tr>
+                        <tr>
+                            <th>{% trans 'Fecha: ' %}</th>
+                            <td>{{ object.date }}</td>
+                        </tr>
+                        <tr>
+                            <th>{% trans 'Usuario: ' %}</th>
+                            <td>{{ object.create_user }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            {% endblock %}
+        </div>
+    </div>
+    <hr>
+    {% block headerBottom %}{% endblock %}
+</div>
+{% endblock header %}
+
+{% block main %}
+<div class="container-fluid">
+    {% block mainTop %}
+        <!-- {# Movimientos. #} -->
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th class="text-start">{% trans 'Código' %}</th>
+                    <th class="text-start">{% trans 'Descripción' %}</th>
+                    <th class="text-end">{% trans 'Cantidad' %}</th>
+                    <th class="text-end">{% trans 'Precio' %}</th>
+                    <th class="text-end">{% trans 'Desc.' %}</th>
+                    <th class="text-end">{% trans 'Impuesto' %}</th>
+                    <th class="text-end">{% trans 'Total' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in object.get_movements %}
+                <tr>
+                    <td class="text-start">{{ obj.item.code }}</td>
+                    <td class="text-start">{{ obj.name }}</td>
+                    <td class="text-end">{{ obj.quantity|intcomma }}</td>
+                    <td class="text-end">{{ obj.price|intcomma }}</td>
+                    <td class="text-end">{{ obj.discount|intcomma }}</td>
+                    <td class="text-end">{{ obj.tax|intcomma }}</td>
+                    <td class="text-end">{{ obj.total|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endblock %}
+    <div class="row">
+        <div class="col col-6">
+            {% block mainLeft %}
+                <!-- {# Nota. #} -->
+                <p class="fw-bold">{{ object.note }}</p>
+            {% endblock %}
+        </div>
+        <div class="col col-6">
+            {% block mainRight %}
+                <!-- {# Totales. #} -->
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <th class="text-end">{% trans 'Subtotal: ' %}</th>
+                            <td class="text-end">{{ object.amount|intcomma }}</td>
+                        </tr>
+                        {% if object.discount %}
+                        <tr>
+                            <th class="text-end">{% trans 'Descuento: ' %}</th>
+                            <td class="text-end">{{ object.discount|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if object.tax %}
+                        <tr>
+                            <th class="text-end">{% trans 'Impuesto: ' %}</th>
+                            <td class="text-end">{{ object.tax|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th class="text-end fs-4">{% trans 'Total: ' %}</th>
+                            <td class="text-end fw-bold fs-4">{{ object.total|intcomma }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            {% endblock %}
+        </div>
+    </div>
+    {% block mainBottom %}{% endblock %}
+</div>
+{% endblock main %}
+
+{% block footer %}
+<div class="container-fluid">
+    {% block footerTop %}{% endblock %}
+    <div class="row">
+        <div class="col col-5">
+            {% block footerLeft %}{% endblock %}
+        </div>
+        <div class="col col-2">
+            {% block footerCenter %}{% endblock %}
+        </div>
+        <div class="col col-5">
+            {% block footerRight %}{% endblock %}
+        </div>
+    </div>
+    {% block footerBottom %}{% endblock %}
+</div>
+{{ block.super }}
+{% endblock footer %}

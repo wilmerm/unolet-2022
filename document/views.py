@@ -11,7 +11,7 @@ from dal import autocomplete
 
 from unoletutils.libs import text
 from unoletutils.views import (UpdateView, CreateView, ListView, DetailView, 
-    DeleteView, TemplateView)
+    DetailPrintView, PrintView, DeleteView, TemplateView)
 from company.models import Company
 from document.models import (Document, DocumentType, DocumentNote)
 from document.forms import (DocumentForm, DocumentPurchaseForm, 
@@ -184,7 +184,18 @@ class DocumentDeleteView(BaseDocument, DeleteView):
     def get_success_url(self):
         return self.object.get_list_url()
 
-        
+
+class DocumentPrintView(BaseDocument, DetailPrintView):
+    """Imprime un documento."""
+    model = Document
+
+    def get_template_names(self):
+        templates = [f"document/document/print.html"]
+        if self.generictype:
+            templates.insert(0, f"document/document/{self.generictype}_print.html")
+        return templates
+
+
 # Json Views.
 
 def document_detail_jsonview(request, company: int, 

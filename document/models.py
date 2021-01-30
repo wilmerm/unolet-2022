@@ -222,10 +222,13 @@ class Document(ModelBase):
 
     tax_receipt_number = models.OneToOneField("finance.TaxReceiptNumber", 
     on_delete=models.PROTECT, editable=False, blank=True, null=True,
-    verbose_name=_("Número de comprobante fiscal"))
+    verbose_name=_("número de comprobante fiscal"))
 
-    pay_taxes = models.BooleanField(_l("Paga impuestos"), default=True, 
-    help_text=_l("Determina si este documento paga impuestos."))
+    pay_taxes = models.BooleanField(_l("paga impuestos"), default=True, 
+    help_text=_l("determina si este documento paga impuestos."))
+
+    is_printed = models.BooleanField(_l("Se imprimió"), default=False, 
+    help_text=_l("indica si el documento ya fue impreso."))
 
     # Campos para consultas.
 

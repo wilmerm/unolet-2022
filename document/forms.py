@@ -17,7 +17,7 @@ class DocumentForm(ModelForm):
 
     class Meta:
         model = Document
-        exclude = ["create_user"]
+        exclude = ["create_user", "is_printed"]
 
     def __init__(self, *args, **kwargs):
 
@@ -66,16 +66,18 @@ class DocumentForm(ModelForm):
                 url=reverse_lazy("finance-autocomplete-currency", 
                 kwargs={"company": self.company.pk})))
 
+        self.fields["currency"].initial = Currency.get_default(self.company)
         self.fields["note"].widget = forms.Textarea(attrs={"rows": 2})
 
         # Cuando es una modificación, algunos campos no se podrán modificar.
         if self.instance.pk:
-            self.fields["warehouse"].disabled = True
-            self.fields["transfer_warehouse"].disabled = True
-            self.fields["doctype"].disabled = True
+            if self.instance.is_printed:
+                self.fields["warehouse"].disabled = True
+                self.fields["transfer_warehouse"].disabled = True
+                self.fields["doctype"].disabled = True
+                self.fields["person"].disabled = True
+                self.fields["currency"].disabled = True
             self.fields["number"].disabled = True
-            self.fields["person"].disabled = True
-            self.fields["currency"].disabled = True
 
 
 class DocumentPurchaseForm(DocumentForm):

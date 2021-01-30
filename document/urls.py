@@ -22,6 +22,9 @@ urlpatterns = [
     path("document/<str:generictype>/<int:pk>/delete/", 
     views.DocumentDeleteView.as_view(), name="document-document-delete"),
 
+    path("document/<str:generictype>/<int:pk>/print/", 
+    views.DocumentPrintView.as_view(), name="document-document-print"),
+
     # Json views.
 
     path("api/document/<int:document>/", 
@@ -99,4 +102,13 @@ for generictype, verbose_name in DocumentType.GENERIC_TYPE_CHOICES:
         pass
     else:
         urlpatterns.append(pattern_delete)
+
+    try:
+        pattern_print = path(f"document/{generictype}/<int:pk>/print/", 
+            views.DocumentPrintView.as_view(generictype=generictype), 
+            name=f"document-document-{generictype}-print")
+    except (AttributeError):
+        pass
+    else:
+        urlpatterns.append(pattern_print)
     

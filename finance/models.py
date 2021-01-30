@@ -90,9 +90,14 @@ class Currency(ModelBase):
 
         return super().save(*args, **kwargs)
 
-    def get_default(self):
+    @classmethod
+    def get_default(cls, company=None):
         """Obtiene la moneda predeterminada del sistema para la empresa."""
-        qs = Currency.objects.filter(is_default=True, company=self.company)
+        if isinstance(cls, Currency):
+            company = company or cls.company
+        if company is None:
+            raise TypeError("Debe indicar la empresa en el parámetro 'company'.")
+        qs = Currency.objects.filter(is_default=True, company=company)
         return qs.last()
 
 
